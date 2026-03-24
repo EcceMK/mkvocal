@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import UserList from './UserList';
 import ChatBox from './ChatBox';
 import AudioStream from './AudioStream';
@@ -19,6 +19,31 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const { localStream, remoteStreams } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string);
+        if (Array.isArray(json)) {
+          socket.emit('import-chat', { roomId, importedMessages: json });
+        } else {
+          alert('Formato JSON non valido per la chat.');
+        }
+      } catch (err) {
+        alert('Errore lettura JSON: file corrotto.');
+      }
+    };
+    reader.readAsText(file);
+    
+    if (importInputRef.current) {
+      importInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     socket.on('all-users', (allUsers) => setUsers(allUsers));
@@ -30,32 +55,11 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     };
     socket.on('connect', handleReconnect);
 
-    socket.on('chat-download-data', (jsonString: string) => {
-      try {
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `chat_${roomId}_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        alert('✅ Chat scaricata con successo sul tuo dispositivo!');
-      } catch (e) {
-        alert('❌ Errore durante il download: ' + e);
-      } finally {
-        setIsDownloading(false);
-      }
-    });
-
     return () => {
       socket.off('all-users');
       socket.off('user-joined');
       socket.off('user-left');
       socket.off('connect', handleReconnect);
-      socket.off('chat-download-data');
     };
   }, [roomId, userId, username]);
 
@@ -147,21 +151,28 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
                )}
              </button>
+             <input
+               type="file"
+               accept=".json"
+               ref={importInputRef}
+               onChange={handleImportFile}
+               className="hidden"
+             />
+             <button 
+               onClick={() => importInputRef.current?.click()}
+               className={`p-2 rounded transition-colors flex items-center justify-center shrink-0 text-gray-300 hover:text-white hover:bg-[#35373c]`}
+               title="Importa Chat JSON precedente"
+             >
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" transform="matrix(1 0 0 -1 0 24)"/></svg>
+             </button>
              <button 
                onClick={() => {
-                 setIsDownloading(true);
-                 socket.emit('request-download', { roomId });
-                 setTimeout(() => setIsDownloading(false), 5000);
+                 window.location.href = `/api/download/${roomId}`;
                }}
-               disabled={isDownloading}
-               className={`p-2 rounded transition-colors flex items-center justify-center shrink-0 ${isDownloading ? 'text-[#5865f2] cursor-wait' : 'text-gray-300 hover:text-white hover:bg-[#35373c]'}`}
+               className={`p-2 rounded transition-colors flex items-center justify-center shrink-0 text-gray-300 hover:text-white hover:bg-[#35373c]`}
                title="Scarica log Chat JSON"
              >
-               {isDownloading ? (
-                 <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-               ) : (
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-               )}
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
              </button>
              <button 
                onClick={handleLeave}

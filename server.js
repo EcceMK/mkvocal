@@ -76,6 +76,49 @@ app.prepare().then(() => {
       socketToRoom[socket.id] = roomId
     })
 
+    socket.on('import-chat', ({ roomId, importedMessages }) => {
+      if (roomId && Array.isArray(importedMessages)) {
+        const roomFile = path.join(dataDir, `room_${roomId}.json`);
+        let history = [];
+        if (fs.existsSync(roomFile)) {
+          try {
+            history = JSON.parse(fs.readFileSync(roomFile, 'utf8'));
+          } catch (err) {}
+        }
+
+        const existingIds = new Set(history.map(m => m.id));
+        const existingSignatures = new Set(history.map(m => `${m.timestamp}-${m.username}-${m.content}`));
+
+        for (const msg of importedMessages) {
+          if (msg) {
+            // Se ha id e l'abbiamo già, salta
+            if (msg.id && existingIds.has(msg.id)) continue;
+            
+            // Fila sicura per file storici vecchi (senza ID)
+            const signature = `${msg.timestamp}-${msg.username}-${msg.content}`;
+            if (existingSignatures.has(signature)) continue;
+
+            // Popola ID se assente
+            if (!msg.id) {
+              msg.id = Date.now().toString() + Math.random().toString(36).substr(2, 5);
+            }
+            
+            history.push(msg);
+            existingSignatures.add(signature);
+          }
+        }
+        
+        history.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        
+        try {
+          fs.writeFileSync(roomFile, JSON.stringify(history));
+          io.to(roomId).emit('chat-history', history);
+        } catch (err) {
+          console.error("Errore salvataggio import:", err);
+        }
+      }
+    })
+
     socket.on('request-download', (payload) => {
       const roomId = (payload && payload.roomId) ? payload.roomId : socketToRoom[socket.id]
       if (roomId) {
