@@ -76,6 +76,24 @@ app.prepare().then(() => {
       socketToRoom[socket.id] = roomId
     })
 
+    socket.on('request-download', (payload) => {
+      const roomId = (payload && payload.roomId) ? payload.roomId : socketToRoom[socket.id]
+      if (roomId) {
+        const roomFile = path.join(dataDir, `room_${roomId}.json`)
+        if (fs.existsSync(roomFile)) {
+          try {
+            const history = fs.readFileSync(roomFile, 'utf8')
+            socket.emit('chat-download-data', history)
+          } catch (err) {
+            console.error(err)
+            socket.emit('chat-download-data', '[]')
+          }
+        } else {
+          socket.emit('chat-download-data', '[]')
+        }
+      }
+    })
+
     socket.on('signal', ({ targetSocketId, signal }) => {
       io.to(targetSocketId).emit('signal', { signal, callerId: socket.id })
     })
