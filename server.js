@@ -4,10 +4,15 @@ const next = require('next')
 const { Server } = require('socket.io')
 const fs = require('fs')
 const path = require('path')
+const os = require('os')
 
-const dataDir = path.join(process.cwd(), 'data')
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir)
+const dataDir = path.join(os.tmpdir(), 'mkvocal_data')
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true })
+  }
+} catch (err) {
+  console.error("Impossibile creare cartella data:", err)
 }
 
 const dev = process.env.NODE_ENV !== 'production'
@@ -86,7 +91,12 @@ app.prepare().then(() => {
           } catch (err) {}
         }
         history.push(msg)
-        fs.writeFileSync(roomFile, JSON.stringify(history))
+        
+        try {
+          fs.writeFileSync(roomFile, JSON.stringify(history))
+        } catch (err) {
+          console.error("Errore disko Render:", err)
+        }
       }
     })
 
