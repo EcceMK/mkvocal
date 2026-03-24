@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import socket from '../lib/socket';
 
 interface Message {
+  id?: string;
   username: string;
   content: string;
   timestamp: string;
@@ -13,7 +14,10 @@ interface Message {
     type: string;
     data: string;
   };
+  reactions?: Record<string, string[]>;
 }
+
+const EMOJI_LIST = ['👍', '😂', '😊', '😢', '😡'];
 
 interface ChatBoxProps {
   username: string;
@@ -35,11 +39,21 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
       setMessages((prev) => [...prev, message]);
     });
 
+    socket.on('chat-message-updated', (updated: Message) => {
+      setMessages((prev) => prev.map(m => m.id === updated.id ? updated : m));
+    });
+
     return () => {
       socket.off('chat-history');
       socket.off('chat-message');
+      socket.off('chat-message-updated');
     };
   }, []);
+
+  const toggleReaction = (messageId: string | undefined, reaction: string) => {
+    if (!messageId) return;
+    socket.emit('chat-reaction', { messageId, reaction, username });
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,7 +93,23 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
     <div className="flex flex-col flex-1 h-full bg-[#313338]">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
-          <div key={idx} className="flex flex-col hover:bg-[#2e3035] p-1 rounded">
+          <div key={idx} className="group relative flex flex-col hover:bg-[#2e3035] p-2 rounded -mx-2">
+            
+            {/* Hover Reaction Picker */}
+            {msg.id && (
+              <div className="absolute right-4 -top-4 hidden group-hover:flex items-center bg-[#2b2d31] border border-[#1e1f22] rounded-md shadow-lg z-10 p-1 gap-1">
+                {EMOJI_LIST.map(emoji => (
+                  <button 
+                    key={emoji}
+                    onClick={() => toggleReaction(msg.id, emoji)}
+                    className="hover:scale-125 transition-transform px-1.5 py-1"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-baseline gap-2">
               <span className="text-[#5865f2] font-semibold text-sm cursor-pointer hover:underline">
                 {msg.username}
@@ -108,6 +138,23 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
                     <span className="truncate max-w-[200px] sm:max-w-xs">{msg.file.name}</span>
                   </a>
                 )}
+              </div>
+            )}
+            
+            {/* Reactions Display */}
+            {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {Object.entries(msg.reactions).map(([emoji, users]) => (
+                  <button 
+                    key={emoji}
+                    onClick={() => toggleReaction(msg.id, emoji)}
+                    title={users.join(', ')}
+                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold border ${users.includes(username) ? 'bg-[#5865f2]/20 border-[#5865f2] text-[#5865f2]' : 'bg-[#2b2d31] border-transparent text-gray-300 hover:border-gray-600'}`}
+                  >
+                    <span className="text-sm">{emoji}</span>
+                    <span>{users.length}</span>
+                  </button>
+                ))}
               </div>
             )}
           </div>

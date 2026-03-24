@@ -77,6 +77,7 @@ app.prepare().then(() => {
       if (roomId) {
         const msg = {
           ...data,
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
           socketId: socket.id,
           timestamp: new Date().toISOString()
         }
@@ -96,6 +97,47 @@ app.prepare().then(() => {
           fs.writeFileSync(roomFile, JSON.stringify(history))
         } catch (err) {
           console.error("Errore disko Render:", err)
+        }
+      }
+    })
+
+    socket.on('chat-reaction', ({ messageId, reaction, username }) => {
+      const roomId = socketToRoom[socket.id]
+      if (roomId) {
+        const roomFile = path.join(dataDir, `room_${roomId}.json`)
+        let history = []
+        if (fs.existsSync(roomFile)) {
+          try {
+            history = JSON.parse(fs.readFileSync(roomFile, 'utf8'))
+          } catch (err) {}
+        }
+
+        const msgIndex = history.findIndex(m => m.id === messageId);
+        if (msgIndex !== -1) {
+          if (!history[msgIndex].reactions) {
+            history[msgIndex].reactions = {};
+          }
+          if (!history[msgIndex].reactions[reaction]) {
+            history[msgIndex].reactions[reaction] = [];
+          }
+          const users = history[msgIndex].reactions[reaction];
+          const userIndex = users.indexOf(username);
+          if (userIndex !== -1) {
+            users.splice(userIndex, 1);
+            if (users.length === 0) {
+              delete history[msgIndex].reactions[reaction];
+            }
+          } else {
+            users.push(username);
+          }
+
+          io.to(roomId).emit('chat-message-updated', history[msgIndex]);
+
+          try {
+            fs.writeFileSync(roomFile, JSON.stringify(history))
+          } catch (err) {
+            console.error("Errore disko Render:", err)
+          }
         }
       }
     })
