@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: "Chat vocale",
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
