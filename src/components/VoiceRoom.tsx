@@ -24,12 +24,18 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     socket.on('user-joined', (user) => setUsers((prev) => [...prev, user]));
     socket.on('user-left', ({ socketId }) => setUsers((prev) => prev.filter((u) => u.socketId !== socketId)));
 
+    const handleReconnect = () => {
+      socket.emit('reconnect-room', { roomId, userId, username });
+    };
+    socket.on('connect', handleReconnect);
+
     return () => {
       socket.off('all-users');
       socket.off('user-joined');
       socket.off('user-left');
+      socket.off('connect', handleReconnect);
     };
-  }, []);
+  }, [roomId, userId, username]);
 
   const toggleMute = () => {
     if (localStream) {

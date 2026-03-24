@@ -27,7 +27,9 @@ app.prepare().then(() => {
     handle(req, res, parsedUrl)
   })
 
-  const io = new Server(httpServer)
+  const io = new Server(httpServer, {
+    maxHttpBufferSize: 1e8 // Consente invio di file e immagini fino a 100MB tramite socket
+  })
 
   const users = {} // socketId -> { userId, username, roomId }
   const socketToRoom = {} // socketId -> roomId
@@ -66,6 +68,12 @@ app.prepare().then(() => {
           console.error('Error reading chat history', err)
         }
       }
+    })
+
+    socket.on('reconnect-room', ({ roomId, username, userId }) => {
+      socket.join(roomId)
+      users[socket.id] = { userId, username, roomId }
+      socketToRoom[socket.id] = roomId
     })
 
     socket.on('signal', ({ targetSocketId, signal }) => {

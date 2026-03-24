@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface User {
   userId: string;
@@ -14,8 +14,27 @@ interface UserListProps {
 }
 
 const UserList: React.FC<UserListProps> = ({ users, currentUser }) => {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(s => s + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (totalSeconds: number) => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="sidebar w-64 flex-shrink-0 flex flex-col h-full border-r border-[#1e1f22]">
+    <div className="sidebar w-64 flex-shrink-0 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31]">
       <div className="p-4 border-b border-[#1e1f22]">
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Users — {users.length + (currentUser ? 1 : 0)}</h2>
       </div>
@@ -39,6 +58,17 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser }) => {
             <span className="text-gray-300 font-medium group-hover:text-white">{user.username}</span>
           </div>
         ))}
+      </div>
+      
+      {/* Timer Widget */}
+      <div className="p-4 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1">
+        <span className="text-[10px] items-center gap-1.5 font-bold text-[#23a559] uppercase tracking-wider flex">
+          <span className="w-2 h-2 rounded-full bg-[#23a559] animate-pulse"></span>
+          Voice Connected
+        </span>
+        <span className="font-mono text-gray-200 text-lg tracking-wider font-semibold">
+          {formatTime(seconds)}
+        </span>
       </div>
     </div>
   );
