@@ -20,11 +20,16 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    socket.on('chat-history', (history: Message[]) => {
+      setMessages(history);
+    });
+
     socket.on('chat-message', (message: Message) => {
       setMessages((prev) => [...prev, message]);
     });
 
     return () => {
+      socket.off('chat-history');
       socket.off('chat-message');
     };
   }, []);

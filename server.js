@@ -2,6 +2,13 @@ const { createServer } = require('http')
 const { parse } = require('url')
 const next = require('next')
 const { Server } = require('socket.io')
+const fs = require('fs')
+const path = require('path')
+
+const dataDir = path.join(process.cwd(), 'data')
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir)
+}
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = process.env.RENDER ? '0.0.0.0' : 'localhost'
@@ -44,6 +51,16 @@ app.prepare().then(() => {
 
       socket.emit('all-users', otherUsers)
       socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id })
+
+      const roomFile = path.join(dataDir, `room_${roomId}.json`)
+      if (fs.existsSync(roomFile)) {
+        try {
+          const history = JSON.parse(fs.readFileSync(roomFile, 'utf8'))
+          socket.emit('chat-history', history)
+        } catch (err) {
+          console.error('Error reading chat history', err)
+        }
+      }
     })
 
     socket.on('signal', ({ targetSocketId, signal }) => {
@@ -53,11 +70,23 @@ app.prepare().then(() => {
     socket.on('chat-message', (data) => {
       const roomId = socketToRoom[socket.id]
       if (roomId) {
-        io.to(roomId).emit('chat-message', {
+        const msg = {
           ...data,
           socketId: socket.id,
           timestamp: new Date().toISOString()
-        })
+        }
+        
+        io.to(roomId).emit('chat-message', msg)
+
+        const roomFile = path.join(dataDir, `room_${roomId}.json`)
+        let history = []
+        if (fs.existsSync(roomFile)) {
+          try {
+            history = JSON.parse(fs.readFileSync(roomFile, 'utf8'))
+          } catch (err) {}
+        }
+        history.push(msg)
+        fs.writeFileSync(roomFile, JSON.stringify(history))
       }
     })
 
