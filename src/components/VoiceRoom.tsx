@@ -19,6 +19,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const { localStream, remoteStreams } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,7 +31,21 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       try {
         const json = JSON.parse(reader.result as string);
         if (Array.isArray(json)) {
-          socket.emit('import-chat', { roomId, importedMessages: json });
+          const count = json.length;
+          let start = 'N/D';
+          let end = 'N/D';
+          if (count > 0) {
+            const sorted = [...json].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+            if (sorted[0]?.timestamp) start = new Date(sorted[0].timestamp).toLocaleDateString([], { hour: '2-digit', minute: '2-digit' });
+            if (sorted[count - 1]?.timestamp) end = new Date(sorted[count - 1].timestamp).toLocaleDateString([], { hour: '2-digit', minute: '2-digit' });
+          }
+          setPendingImport({
+            messages: json,
+            filename: file.name,
+            count,
+            start,
+            end
+          });
         } else {
           alert('Formato JSON non valido per la chat.');
         }
@@ -249,6 +264,62 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           </div>
         </div>
       )}
+      {/* Import Modal */}
+      {pendingImport && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-[#313338] border border-[#1e1f22] rounded-xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+            <div className="p-4 border-b border-[#1e1f22] flex justify-between items-center bg-[#2b2d31]">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4 4m4-4V4" transform="matrix(1 0 0 -1 0 24)"/></svg>
+                Importa Chat
+              </h2>
+              <button onClick={() => setPendingImport(null)} className="text-gray-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-4 text-gray-300">
+              <div className="bg-[#2b2d31] p-3 rounded-md border border-[#1e1f22]">
+                <p className="text-sm"><strong className="text-white">File:</strong> {pendingImport.filename}</p>
+                <p className="text-sm mt-1"><strong className="text-white">Messaggi trovati:</strong> {pendingImport.count}</p>
+                <p className="text-sm mt-1"><strong className="text-white">Cronologia:</strong> da {pendingImport.start} a {pendingImport.end}</p>
+              </div>
+              
+              <p className="text-sm">Come vuoi procedere con questi messaggi?</p>
+            </div>
+            
+            <div className="p-4 bg-[#2b2d31] border-t border-[#1e1f22] flex flex-col gap-2">
+              <button
+                onClick={() => {
+                  socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: false });
+                  setPendingImport(null);
+                }}
+                className="w-full py-2.5 px-4 bg-[#5865f2] hover:bg-[#4752c4] text-white font-medium rounded transition-colors text-sm"
+              >
+                Unisci alla chat attuale
+              </button>
+              <button
+                onClick={() => {
+                  if(window.confirm("Attenzione: questa operazione cancellerà tutti i messaggi attuali della stanza. Clicca OK per confermare.")) {
+                    socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: true });
+                    setPendingImport(null);
+                  }
+                }}
+                className="w-full py-2.5 px-4 bg-[#da373c] hover:bg-[#c02026] text-white font-medium rounded transition-colors text-sm"
+              >
+                Sovrascrivi chat attuale
+              </button>
+              <button
+                onClick={() => setPendingImport(null)}
+                className="w-full mt-2 py-2 px-4 hover:underline text-gray-400 hover:text-white font-medium transition-colors text-sm"
+              >
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

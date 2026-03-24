@@ -76,11 +76,11 @@ app.prepare().then(() => {
       socketToRoom[socket.id] = roomId
     })
 
-    socket.on('import-chat', ({ roomId, importedMessages }) => {
+    socket.on('import-chat', ({ roomId, importedMessages, overwrite }) => {
       if (roomId && Array.isArray(importedMessages)) {
         const roomFile = path.join(dataDir, `room_${roomId}.json`);
         let history = [];
-        if (fs.existsSync(roomFile)) {
+        if (!overwrite && fs.existsSync(roomFile)) {
           try {
             history = JSON.parse(fs.readFileSync(roomFile, 'utf8'));
           } catch (err) {}
