@@ -59,9 +59,9 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser }) => {
           </div>
         ))}
       </div>
-      
+
       {/* Timer Widget */}
-      <div className="p-4 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1">
+      <div className="p-2 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1">
         <span className="text-[10px] items-center gap-1.5 font-bold text-[#23a559] uppercase tracking-wider flex">
           <span className="w-2 h-2 rounded-full bg-[#23a559] animate-pulse"></span>
           Voice Connected

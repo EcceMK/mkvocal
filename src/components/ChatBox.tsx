@@ -72,7 +72,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
       });
     };
     reader.readAsDataURL(selected);
-    
+
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -91,15 +91,15 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
 
   return (
     <div className="flex flex-col flex-1 h-full bg-[#313338]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div id="chat-box" className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <div key={idx} className="group relative flex flex-col hover:bg-[#2e3035] p-2 rounded -mx-2">
-            
+
             {/* Hover Reaction Picker */}
             {msg.id && (
               <div className="absolute right-4 -top-4 hidden group-hover:flex items-center bg-[#2b2d31] border border-[#1e1f22] rounded-md shadow-lg z-10 p-1 gap-1">
                 {EMOJI_LIST.map(emoji => (
-                  <button 
+                  <button
                     key={emoji}
                     onClick={() => toggleReaction(msg.id, emoji)}
                     className="hover:scale-125 transition-transform px-1.5 py-1"
@@ -123,15 +123,15 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
               <div className="mt-2">
                 {msg.file.type.startsWith('image/') ? (
                   <a href={msg.file.data} download={msg.file.name} title="Scarica immagine" className="inline-block">
-                    <img 
-                      src={msg.file.data} 
-                      alt={msg.file.name} 
-                      className="max-h-[500px] max-w-full rounded cursor-pointer object-contain border border-[#1e1f22] hover:opacity-90 transition-opacity" 
+                    <img
+                      src={msg.file.data}
+                      alt={msg.file.name}
+                      className="max-h-[500px] max-w-full rounded cursor-pointer object-contain border border-[#1e1f22] hover:opacity-90 transition-opacity"
                     />
                   </a>
                 ) : (
-                  <a 
-                    href={msg.file.data} 
+                  <a
+                    href={msg.file.data}
                     download={msg.file.name}
                     className="flex flex-row items-center gap-2 p-3 bg-[#1e1f22] rounded text-[#5865f2] hover:underline w-fit text-sm"
                   >
@@ -141,12 +141,12 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
                 )}
               </div>
             )}
-            
+
             {/* Reactions Display */}
             {msg.reactions && Object.keys(msg.reactions).length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {Object.entries(msg.reactions).map(([emoji, users]) => (
-                  <button 
+                  <button
                     key={emoji}
                     onClick={() => toggleReaction(msg.id, emoji)}
                     title={users.join(', ')}
@@ -167,9 +167,9 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
         {file && (
           <div className="mb-2 flex items-center gap-2 bg-[#2e3035] p-2 rounded w-fit border border-[#1e1f22]">
             <span className="text-sm text-gray-300 truncate max-w-[200px]">{file.name}</span>
-            <button 
-              type="button" 
-              onClick={() => setFile(null)} 
+            <button
+              type="button"
+              onClick={() => setFile(null)}
               className="text-red-400 hover:text-red-300 text-lg font-bold leading-none ml-2"
             >
               &times;
@@ -200,13 +200,13 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
             placeholder="Messaggio..."
             className="w-full p-3 rounded-lg bg-[#383a40] text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-shadow h-12"
           />
-          <button 
+          <button
             type="submit"
             disabled={!input.trim() && !file}
             className="flex items-center justify-center h-12 w-12 rounded-lg bg-[#5865f2] hover:bg-[#4752c4] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
             title="Invia"
           >
-            <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
           </button>
         </form>
       </div>
