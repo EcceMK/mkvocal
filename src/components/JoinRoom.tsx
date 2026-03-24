@@ -20,7 +20,7 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4">
       <div className="card max-w-md w-full p-8 shadow-2xl bg-[#2b2d31]">
-        <h1 className="text-3xl font-bold text-center mb-8 text-white">mkvocal</h1>
+        <h1 className="text-3xl font-bold text-center mb-8 text-white">MKvocal</h1>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">
@@ -54,7 +54,7 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
             type="submit"
             className="w-full btn-primary text-lg py-3 mt-4 hover:shadow-lg transition-all"
           >
-            Join Room
+            Entra
           </button>
         </form>
       </div>
