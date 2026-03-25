@@ -44,11 +44,12 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
               type="text"
               id="roomId"
               value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
+              onChange={(e) => setRoomId(e.target.value.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase())}
               className="w-full p-3 rounded bg-[#1e1f22] border-none focus:ring-2 focus:ring-[#5865f2] text-white outline-none transition-all"
               placeholder="Enter room ID"
               required
             />
+
           </div>
           <button
             type="submit"
