@@ -180,7 +180,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="scroll-p-3 bg-[#383a40] h-12 w-12 text-gray-400 hover:text-gray-200 rounded-lg transition-colors flex items-center justify-center shrink-0"
+            className="scroll-p-3 bg-[#383a40] h-12 w-12 text-gray-400 hover:text-gray-200 rounded-lg transition-colors flex items-center justify-center shrink-0 cursor-pointer"
             title={t('chat_box.attach')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +203,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
           <button
             type="submit"
             disabled={!input.trim() && !file}
-            className="flex items-center justify-center h-12 w-12 rounded-lg bg-[#5865f2] hover:bg-[#4752c4] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+            className="flex items-center justify-center h-12 w-12 rounded-lg bg-[#5865f2] hover:bg-[#4752c4] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 cursor-pointer "
             title={t('chat_box.send')}
           >
             <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>

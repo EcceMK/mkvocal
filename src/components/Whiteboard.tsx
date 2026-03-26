@@ -84,12 +84,12 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     const renderPaths = (paths: Path[]) => {
       paths.forEach(path => {
         if (!path.points || path.points.length < 2) return;
-        
+
         ctx.beginPath();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.lineWidth = path.width;
-        
+
         if (path.tool === 'eraser') {
           ctx.globalCompositeOperation = 'destination-out';
           ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -126,7 +126,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     setIsDrawing(true);
     const pos = getPos(e);
     setCurrentPath([pos]);
-    
+
     socket.emit('whiteboard-draw', {
       point: pos,
       color,
@@ -140,7 +140,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     if (!isDrawing) return;
     const pos = getPos(e);
     setCurrentPath(prev => [...prev, pos]);
-    
+
     socket.emit('whiteboard-draw', {
       point: pos,
       isNew: false
@@ -168,7 +168,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? (e as React.TouchEvent).touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? (e as React.TouchEvent).touches[0].clientY : (e as React.MouseEvent).clientY;
-    
+
     const x = (clientX - rect.left) * (canvas.width / rect.width);
     const y = (clientY - rect.top) * (canvas.height / rect.height);
     return { x, y };
@@ -182,17 +182,17 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   const downloadCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tCtx = tempCanvas.getContext('2d');
     if (!tCtx) return;
-    
+
     tCtx.fillStyle = '#2b2d31';
     tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     tCtx.drawImage(canvas, 0, 0);
-    
+
     const dataUrl = tempCanvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = `whiteboard-${new Date().getTime()}.png`;
@@ -205,16 +205,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
       <div className="h-12 bg-[#232428] border-b border-[#1e1f22] flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex bg-[#1e1f22] rounded-lg p-1">
-            <button 
+            <button
               onClick={() => setTool('pencil')}
-              className={`p-1.5 rounded transition-all ${tool === 'pencil' ? 'bg-[#5865f2] text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-1.5 rounded transition-all cursor-pointer ${tool === 'pencil' ? 'bg-[#5865f2] text-white' : 'text-gray-400 hover:text-white'}`}
               title={t('voice_room.whiteboard.pencil')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             </button>
-            <button 
+            <button
               onClick={() => setTool('eraser')}
-              className={`p-1.5 rounded transition-all ${tool === 'eraser' ? 'bg-[#da373c] text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`p-1.5 rounded transition-all cursor-pointer ${tool === 'eraser' ? 'bg-[#da373c] text-white' : 'text-gray-400 hover:text-white'}`}
               title={t('voice_room.whiteboard.eraser')}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -224,10 +224,10 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
           {tool === 'pencil' && (
             <div className="flex gap-1.5">
               {['#5865f2', '#f23f42', '#23a559', '#f9a8d4', '#fee75c', '#ffffff'].map(c => (
-                <button 
+                <button
                   key={c}
                   onClick={() => setColor(c)}
-                  className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-white' : 'border-transparent'}`}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform cursor-pointer hover:scale-110 ${color === c ? 'border-white' : 'border-transparent'}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -236,9 +236,9 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
 
           <div className="flex items-center gap-2 ml-2">
             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{t('voice_room.whiteboard.size')}</span>
-            <input 
-              type="range" min="1" max="25" 
-              value={lineWidth} 
+            <input
+              type="range" min="1" max="25"
+              value={lineWidth}
               onChange={(e) => setLineWidth(parseInt(e.target.value))}
               className="w-20 h-1.5 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer accent-[#5865f2]"
             />
@@ -247,16 +247,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={downloadCanvas}
-            className="text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c] flex items-center gap-1"
+            className="text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase px-2 py-2 bg-[#1e1f22] rounded hover:bg-[#35373c] flex items-center gap-1 cursor-pointer "
             title={t('voice_room.whiteboard.download')}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
           </button>
-          <button 
+          <button
             onClick={clearOwn}
-            className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase tracking-widest px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c]"
+            className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase tracking-widest px-2 py-2 bg-[#1e1f22] rounded hover:bg-[#35373c] cursor-pointer "
           >
             {t('voice_room.whiteboard.clear_own')}
           </button>
@@ -264,7 +264,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
       </div>
 
       <div className="flex-1 relative cursor-crosshair overflow-hidden bg-[#2b2d31]">
-        <canvas 
+        <canvas
           ref={canvasRef}
           width={1600}
           height={1000}

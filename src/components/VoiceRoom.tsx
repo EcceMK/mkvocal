@@ -195,12 +195,12 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   return (
     <div className="flex flex-col h-full bg-[#313338] text-white overflow-hidden relative mk-h-100">
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <UserList 
-          users={users} 
-          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard }} 
+        <UserList
+          users={users}
+          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard }}
           speakingUsers={speakingUsers}
         />
-        
+
         <main className="flex-1 flex flex-col min-w-0 bg-[#313338] relative">
           {/* Header */}
           <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0">
@@ -220,10 +220,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                   </div>
                 ) : (
                   messages.map((msg, i) => {
-                      const msgId = msg.id || i.toString();
-                      return (
-                      <div 
-                        key={msgId} 
+                    const msgId = msg.id || i.toString();
+                    return (
+                      <div
+                        key={msgId}
                         className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300 relative rounded-lg hover:bg-[#2b2d31] p-3 -mx-3 transition-colors"
                         onMouseEnter={() => setActiveReactionMsgId(msgId)}
                         onMouseLeave={() => setActiveReactionMsgId(null)}
@@ -232,7 +232,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                         {activeReactionMsgId === msgId && msg.id && (
                           <div className="absolute right-4 -top-4 bg-[#313338] border border-[#1e1f22] rounded flex shadow-lg overflow-hidden z-10 transition-opacity">
                             {REACTION_EMOJIS.map(emoji => (
-                              <button 
+                              <button
                                 key={emoji}
                                 onClick={() => socket.emit('chat-reaction', { messageId: msg.id, reaction: emoji, username })}
                                 className="px-2 py-1.5 hover:bg-[#3f4147] transition-colors hover:scale-110"
@@ -247,26 +247,26 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                           <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
                           <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        { (msg.text || msg.content) && (
+                        {(msg.text || msg.content) && (
                           <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || msg.content}</p>
                         )}
-                        
+
                         {/* Generato se l'utente carica un file o un'immagine */}
                         {msg.fileData && (
                           <div className="mt-2">
                             {msg.fileType?.startsWith('image/') ? (
                               <a href={msg.fileData} download={msg.fileName} className="block w-fit">
-                                <img 
-                                  src={msg.fileData} 
-                                  alt={msg.fileName || 'Image'} 
-                                  className="rounded-lg object-contain max-w-full" 
-                                  style={{ maxHeight: '500px', maxWidth: '500px' }} 
+                                <img
+                                  src={msg.fileData}
+                                  alt={msg.fileName || 'Image'}
+                                  className="rounded-lg object-contain max-w-full"
+                                  style={{ maxHeight: '500px', maxWidth: '500px' }}
                                 />
                               </a>
                             ) : (
-                              <a 
-                                href={msg.fileData} 
-                                download={msg.fileName} 
+                              <a
+                                href={msg.fileData}
+                                download={msg.fileName}
                                 className="flex items-center gap-3 p-3 bg-[#2b2d31] hover:bg-[#35373c] border border-[#1e1f22] rounded-lg w-fit transition-colors group cursor-pointer"
                               >
                                 <div className="w-10 h-10 rounded bg-[#1e1f22] flex items-center justify-center group-hover:bg-[#232428]">
@@ -304,8 +304,8 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                           </div>
                         )}
                       </div>
-                      );
-                    })
+                    );
+                  })
                 )}
                 <div ref={messagesEndRef} />
               </>
@@ -347,7 +347,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                 <button
                   type="button"
                   onClick={() => chatFileInputRef.current?.click()}
-                  className="w-10 h-10 rounded-full flex items-center justify-center bg-[#2b2d31] hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors shrink-0"
+                  className="w-10 h-10 cursor-pointer rounded-full flex items-center justify-center bg-[#2b2d31] hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors shrink-0"
                   title="Carica un file"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
@@ -366,7 +366,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                     placeholder={t('voice_room.message_placeholder')}
                     className="w-full bg-[#383a40] text-[#dbdee1] rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
                   />
-                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
+                  <button type="submit" className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
                     <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                   </button>
                 </div>
@@ -387,29 +387,29 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
         </div>
 
         <div className="flex items-center gap-2">
-          <button onClick={() => setShowDiceModal(true)} className="p-2 rounded hover:bg-[#35373c] text-gray-300 hover:text-white transition-colors" title={t('voice_room.roll_dice')}>
+          <button onClick={() => setShowDiceModal(true)} className="p-2 cursor-pointer rounded hover:bg-[#35373c] text-gray-300 hover:text-white transition-colors" title={t('voice_room.roll_dice')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" /><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" /><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg>
           </button>
-          <button onClick={() => switchSubRoom(subRoom === 'common' ? 'private' : 'common')} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${subRoom === 'private' ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={subRoom === 'private' ? t('voice_room.exit_private') : t('voice_room.enter_private')}>
+          <button onClick={() => switchSubRoom(subRoom === 'common' ? 'private' : 'common')} className={`p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${subRoom === 'private' ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={subRoom === 'private' ? t('voice_room.exit_private') : t('voice_room.enter_private')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </button>
-          <button onClick={() => setShowWhiteboard(!showWhiteboard)} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${showWhiteboard ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={showWhiteboard ? t('voice_room.whiteboard_off') : t('voice_room.whiteboard_on')}>
+          <button onClick={() => setShowWhiteboard(!showWhiteboard)} className={`p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${showWhiteboard ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={showWhiteboard ? t('voice_room.whiteboard_off') : t('voice_room.whiteboard_on')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
           </button>
-          <button onClick={toggleVideo} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${isVideoOn ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`} title={isVideoOn ? t('voice_room.video_off') : t('voice_room.video_on')}>
+          <button onClick={toggleVideo} className={`p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${isVideoOn ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`} title={isVideoOn ? t('voice_room.video_off') : t('voice_room.video_on')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           </button>
-          <button onClick={toggleMute} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${isMuted ? 'text-[#f23f42]' : 'text-gray-300 hover:text-white'}`} title={isMuted ? t('voice_room.unmute') : t('voice_room.mute')}>
+          <button onClick={toggleMute} className={`p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${isMuted ? 'text-[#f23f42]' : 'text-gray-300 hover:text-white'}`} title={isMuted ? t('voice_room.unmute') : t('voice_room.mute')}>
             {isMuted ? <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" /></svg> : <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" /><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" /></svg>}
           </button>
           <input type="file" accept=".json" ref={importInputRef} onChange={handleImportFile} className="hidden" />
-          <button onClick={() => importInputRef.current?.click()} className="p-2 rounded text-gray-300 hover:text-white hover:bg-[#35373c]" title={t('voice_room.import_chat')}>
+          <button onClick={() => importInputRef.current?.click()} className="p-2 cursor-pointer rounded text-gray-300 hover:text-white hover:bg-[#35373c]" title={t('voice_room.import_chat')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" transform="matrix(1 0 0 -1 0 24)" /></svg>
           </button>
-          <button onClick={() => downloadChatLog(roomId)} className="p-2 rounded text-gray-300 hover:text-white hover:bg-[#35373c]" title={t('voice_room.download_chat')}>
+          <button onClick={() => downloadChatLog(roomId)} className="p-2 cursor-pointer rounded text-gray-300 hover:text-white hover:bg-[#35373c]" title={t('voice_room.download_chat')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
           </button>
-          <button onClick={handleLeave} className="p-2 rounded hover:bg-[#35373c] text-[#f23f42] hover:text-[#da373c]" title={t('voice_room.leave_room')}>
+          <button onClick={handleLeave} className="p-2 cursor-pointer rounded hover:bg-[#35373c] text-[#f23f42] hover:text-[#da373c]" title={t('voice_room.leave_room')}>
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" /></svg>
           </button>
         </div>

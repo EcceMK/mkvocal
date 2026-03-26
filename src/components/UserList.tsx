@@ -42,14 +42,13 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
 
   const renderUser = (user: { username: string; socketId?: string; isYou?: boolean; isSpeaking?: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean }) => {
     const isSpeaking = user.isSpeaking || (user.socketId && speakingUsers.has(user.socketId));
-    
+
     return (
-      <div key={user.socketId || 'you'} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors cursor-pointer group">
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase transition-all duration-200 ${
-          isSpeaking 
-            ? 'bg-[#23a559] ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31] scale-110' 
+      <div key={user.socketId || 'you'} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors group">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase transition-all duration-200 ${isSpeaking
+            ? 'bg-[#23a559] ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31] scale-110'
             : user.isYou ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
-        }`}>
+          }`}>
           {user.username[0]}
         </div>
         <div className="flex flex-col flex-1 min-w-0">
@@ -79,7 +78,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
       <div className="p-4 border-b border-[#1e1f22]">
         <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Stanza Comune */}
         <div className="space-y-2">
