@@ -24,17 +24,21 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const dragStartPos = useRef({ x: 0, y: 0 });
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const hasVideo = stream && stream.getVideoTracks().some(t => t.enabled);
+
   useEffect(() => {
     const video = videoRef.current;
     if (video && stream) {
-      video.srcObject = stream;
+      if (video.srcObject !== stream) {
+        video.srcObject = stream;
+      }
       video.onloadedmetadata = () => {
         video.play().catch(e => console.error("Error playing video:", e));
       };
       // For cases where metadata is already loaded
       video.play().catch(() => {});
     }
-  }, [stream]);
+  }, [stream, hasVideo]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.close-btn')) return;
@@ -69,8 +73,6 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
       window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging]);
-
-  const hasVideo = stream && stream.getVideoTracks().some(t => t.enabled);
 
   return (
     <div 
