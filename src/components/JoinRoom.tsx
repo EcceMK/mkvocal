@@ -51,6 +51,9 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
               placeholder={t('join_room.room_id_placeholder')}
               required
             />
+            <p className="text-xs text-gray-400 mt-2">
+              {t('join_room.room_id_help')}
+            </p>
 
           </div>
           <button
