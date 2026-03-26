@@ -35,7 +35,7 @@ app.prepare().then(() => {
   const socketToRoom = {} // socketId -> roomId
 
   io.on('connection', (socket) => {
-    socket.on('join-room', ({ roomId, username, userId }) => {
+    socket.on('join-room', ({ roomId, username, userId, subRoom = 'common' }) => {
       // Check room limit
       const roomUsers = io.sockets.adapter.rooms.get(roomId)
       const numUsers = roomUsers ? roomUsers.size : 0
@@ -45,19 +45,19 @@ app.prepare().then(() => {
       }
 
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId }
+      users[socket.id] = { userId, username, roomId, subRoom }
       socketToRoom[socket.id] = roomId
 
       // Get all other users in the room
       const otherUsers = []
       for (const [sId, info] of Object.entries(users)) {
         if (info.roomId === roomId && sId !== socket.id) {
-          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId })
+          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom })
         }
       }
 
       socket.emit('all-users', otherUsers)
-      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id })
+      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom })
 
       const roomFile = path.join(dataDir, `room_${roomId}.json`)
       if (fs.existsSync(roomFile)) {
@@ -70,10 +70,18 @@ app.prepare().then(() => {
       }
     })
 
-    socket.on('reconnect-room', ({ roomId, username, userId }) => {
+    socket.on('reconnect-room', ({ roomId, username, userId, subRoom = 'common' }) => {
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId }
+      users[socket.id] = { userId, username, roomId, subRoom }
       socketToRoom[socket.id] = roomId
+    })
+
+    socket.on('switch-subroom', ({ subRoom }) => {
+      const info = users[socket.id]
+      if (info) {
+        info.subRoom = subRoom
+        io.to(info.roomId).emit('user-switched-subroom', { userId: info.userId, socketId: socket.id, subRoom })
+      }
     })
 
     socket.on('import-chat', ({ roomId, importedMessages, overwrite }) => {

@@ -6,14 +6,16 @@ interface User {
   userId: string;
   username: string;
   socketId: string;
+  subRoom?: string;
 }
 
 interface UserListProps {
   users: User[];
-  currentUser: { userId: string; username: string } | null;
+  currentUser: { userId: string; username: string; subRoom: string; isSpeaking: boolean } | null;
+  speakingUsers: Set<string>;
 }
 
-const UserList: React.FC<UserListProps> = ({ users, currentUser }) => {
+const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }) => {
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
@@ -33,31 +35,59 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser }) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const commonUsers = users.filter(u => !u.subRoom || u.subRoom === 'common');
+  const privateUsers = users.filter(u => u.subRoom === 'private');
+
+  const renderUser = (user: { username: string; socketId?: string; isYou?: boolean; isSpeaking?: boolean }) => {
+    const isSpeaking = user.isSpeaking || (user.socketId && speakingUsers.has(user.socketId));
+    
+    return (
+      <div key={user.socketId || 'you'} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors cursor-pointer group">
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase transition-all duration-200 ${
+          isSpeaking 
+            ? 'bg-[#23a559] ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31] scale-110' 
+            : user.isYou ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
+        }`}>
+          {user.username[0]}
+        </div>
+        <div className="flex flex-col">
+          <span className={`font-medium transition-colors ${isSpeaking ? 'text-[#23a559]' : user.isYou ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
+            {user.username}
+          </span>
+          {user.isYou && <span className="text-[10px] text-gray-400 uppercase font-bold">You</span>}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="sidebar w-64 flex-shrink-0 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31]">
       <div className="p-4 border-b border-[#1e1f22]">
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Users — {users.length + (currentUser ? 1 : 0)}</h2>
+        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Membri — {users.length + (currentUser ? 1 : 0)}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {currentUser && (
-          <div className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors cursor-pointer group">
-            <div className="w-8 h-8 rounded-full bg-[#5865f2] flex items-center justify-center text-xs font-bold text-white uppercase">
-              {currentUser.username[0]}
-            </div>
-            <div className="flex flex-col">
-              <span className="text-white font-medium">{currentUser.username}</span>
-              <span className="text-[10px] text-gray-400 uppercase font-bold">You</span>
-            </div>
+      
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Stanza Comune */}
+        <div className="space-y-2">
+          <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            Stanza Comune
           </div>
-        )}
-        {users.map((user) => (
-          <div key={user.socketId} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors cursor-pointer group">
-            <div className="w-8 h-8 rounded-full bg-[#4e5058] flex items-center justify-center text-xs font-bold text-white uppercase">
-              {user.username[0]}
-            </div>
-            <span className="text-gray-300 font-medium group-hover:text-white">{user.username}</span>
+          {currentUser?.subRoom === 'common' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking })}
+          {commonUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId }))}
+          {commonUsers.length === 0 && currentUser?.subRoom !== 'common' && <p className="text-[11px] text-gray-500 italic pl-2">Nessun utente</p>}
+        </div>
+
+        {/* Stanza Privata */}
+        <div className="space-y-2">
+          <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            Stanza Privata
           </div>
-        ))}
+          {currentUser?.subRoom === 'private' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking })}
+          {privateUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId }))}
+          {privateUsers.length === 0 && currentUser?.subRoom !== 'private' && <p className="text-[11px] text-gray-500 italic pl-2">Nessun utente</p>}
+        </div>
       </div>
 
       {/* Timer Widget */}

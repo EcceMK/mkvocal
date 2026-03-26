@@ -16,8 +16,8 @@ interface VoiceRoomProps {
 }
 
 const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
-  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string }[]>([]);
-  const { localStream, remoteStreams } = useWebRTC(roomId, userId, username);
+  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string }[]>([]);
+  const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
@@ -66,18 +66,22 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     socket.on('user-joined', (user) => setUsers((prev) => [...prev, user]));
     socket.on('user-left', ({ socketId }) => setUsers((prev) => prev.filter((u) => u.socketId !== socketId)));
 
+    socket.on('user-switched-subroom', ({ socketId, subRoom: newSubRoom }) => {
+      setUsers((prev) => prev.map((u) => (u.socketId === socketId ? { ...u, subRoom: newSubRoom } : u)));
+    });
+
     const handleReconnect = () => {
-      socket.emit('reconnect-room', { roomId, userId, username });
+      socket.emit('reconnect-room', { roomId, userId, username, subRoom });
     };
     socket.on('connect', handleReconnect);
 
     return () => {
       socket.off('all-users');
       socket.off('user-joined');
-      socket.off('user-left');
+      socket.off('user-switched-subroom');
       socket.off('connect', handleReconnect);
     };
-  }, [roomId, userId, username]);
+  }, [roomId, userId, username, subRoom]);
 
   const toggleMute = () => {
     if (localStream) {
@@ -123,7 +127,11 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   return (
     <div className="flex h-screen overflow-hidden bg-[#313338] text-[#f2f3f5]">
       {/* Sidebar */}
-      <UserList users={users} currentUser={{ userId, username }} />
+      <UserList 
+        users={users} 
+        currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local') }} 
+        speakingUsers={speakingUsers}
+      />
 
       {/* Main Content */}
       <div className="flex flex-col flex-1 h-full">
@@ -155,6 +163,15 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
               title="Tira il Dado"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" strokeWidth="2" /><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" /><circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" /><circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="currentColor" /></svg>
+            </button>
+            <button
+              onClick={() => switchSubRoom(subRoom === 'common' ? 'private' : 'common')}
+              className={`p-2 rounded hover:bg-[#35373c] group transition-colors flex items-center justify-center ${subRoom === 'private' ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`}
+              title={subRoom === 'private' ? 'Esci da Stanza Privata' : 'Entra in Stanza Privata'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
             </button>
             <button
               onClick={toggleMute}
