@@ -19,7 +19,7 @@ interface VoiceRoomProps {
 
 const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
   const { t } = useI18n();
-  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean }[]>([]);
+  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState<{ username: string, text: string }[]>([]);
@@ -65,6 +65,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       }
     });
 
+    socket.on('user-toggled-whiteboard', ({ socketId, isWhiteboardOn }) => {
+      setUsers((prev) => prev.map(u => u.socketId === socketId ? { ...u, isWhiteboardOn } : u));
+    });
+
     socket.on('chat-message', (msg) => setMessages((prev) => [...prev, msg]));
 
     const handleReconnect = () => {
@@ -78,6 +82,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       socket.off('user-left');
       socket.off('user-switched-subroom');
       socket.off('user-toggled-video');
+      socket.off('user-toggled-whiteboard');
       socket.off('chat-message');
       socket.off('connect', handleReconnect);
     };
@@ -86,6 +91,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    socket.emit('toggle-whiteboard', { isWhiteboardOn: showWhiteboard });
+  }, [showWhiteboard]);
 
   const toggleMute = () => {
     if (localStream) {
@@ -153,7 +162,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       <div className="flex-1 flex overflow-hidden min-h-0">
         <UserList 
           users={users} 
-          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn }} 
+          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard }} 
           speakingUsers={speakingUsers}
         />
         

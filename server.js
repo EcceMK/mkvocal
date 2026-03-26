@@ -46,19 +46,19 @@ app.prepare().then(() => {
       }
 
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: false }
+      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: false, isWhiteboardOn: false }
       socketToRoom[socket.id] = roomId
 
       // Get all other users in the room
       const otherUsers = []
       for (const [sId, info] of Object.entries(users)) {
         if (info.roomId === roomId && sId !== socket.id) {
-          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom, isVideoOn: info.isVideoOn || false })
+          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom, isVideoOn: info.isVideoOn || false, isWhiteboardOn: info.isWhiteboardOn || false })
         }
       }
 
       socket.emit('all-users', otherUsers)
-      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false })
+      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false, isWhiteboardOn: false })
 
       // Send chat history
       const roomFile = path.join(dataDir, `room_${roomId}.json`)
@@ -153,13 +153,20 @@ app.prepare().then(() => {
     })
 
     socket.on('toggle-video', ({ isVideoOn }) => {
-    if (users[socket.id]) {
-      users[socket.id].isVideoOn = isVideoOn;
-      socket.to(users[socket.id].roomId).emit('user-toggled-video', { socketId: socket.id, isVideoOn });
-    }
-  });
+      if (users[socket.id]) {
+        users[socket.id].isVideoOn = isVideoOn;
+        socket.to(users[socket.id].roomId).emit('user-toggled-video', { socketId: socket.id, isVideoOn });
+      }
+    });
 
-  socket.on('signal', ({ targetSocketId, signal }) => {
+    socket.on('toggle-whiteboard', ({ isWhiteboardOn }) => {
+      if (users[socket.id]) {
+        users[socket.id].isWhiteboardOn = isWhiteboardOn;
+        socket.to(users[socket.id].roomId).emit('user-toggled-whiteboard', { socketId: socket.id, isWhiteboardOn });
+      }
+    });
+
+    socket.on('signal', ({ targetSocketId, signal }) => {
       io.to(targetSocketId).emit('signal', { signal, callerId: socket.id })
     })
 
@@ -237,11 +244,10 @@ app.prepare().then(() => {
       const info = users[socket.id]
       if (info) {
         const roomId = info.roomId;
-        if (!roomWhiteboards[roomId]) roomWhiteboards[roomId] = {};
+        if (!roomWhiteboards[roomId]) roomWhiteboards[roomId] = [];
         
         if (data.isNew) {
-          if (!roomWhiteboards[roomId][socket.id]) roomWhiteboards[roomId][socket.id] = [];
-          roomWhiteboards[roomId][socket.id].push({
+          roomWhiteboards[roomId].push({
             points: [data.point],
             color: data.color,
             width: data.width,
@@ -249,10 +255,13 @@ app.prepare().then(() => {
             userId: socket.id
           });
         } else {
-          const userPaths = roomWhiteboards[roomId][socket.id];
-          if (userPaths && userPaths.length > 0) {
-            const lastPath = userPaths[userPaths.length - 1];
-            lastPath.points.push(data.point);
+          // Trova l'ultimo tratto inserito da questo utente e aggiornalo
+          const history = roomWhiteboards[roomId];
+          for (let i = history.length - 1; i >= 0; i--) {
+            if (history[i].userId === socket.id) {
+              history[i].points.push(data.point);
+              break;
+            }
           }
         }
 
@@ -267,7 +276,7 @@ app.prepare().then(() => {
       const info = users[socket.id]
       if (info) {
         if (roomWhiteboards[info.roomId]) {
-          delete roomWhiteboards[info.roomId][socket.id];
+          roomWhiteboards[info.roomId] = roomWhiteboards[info.roomId].filter(p => p.userId !== socket.id);
         }
         socket.to(info.roomId).emit('whiteboard-clear', {
           socketId: socket.id

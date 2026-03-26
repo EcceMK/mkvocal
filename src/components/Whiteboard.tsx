@@ -23,60 +23,41 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [allPaths, setAllPaths] = useState<{ [userId: string]: Path[] }>({});
+  const [allPaths, setAllPaths] = useState<Path[]>([]);
   const [currentPath, setCurrentPath] = useState<Point[]>([]);
   const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
   const [color, setColor] = useState('#5865f2');
   const [lineWidth, setLineWidth] = useState(3);
 
-  // Buffer canvases for each user to allow selective erasing
-  const userBuffers = useRef<{ [userId: string]: HTMLCanvasElement }>({});
-
   useEffect(() => {
-    socket.on('whiteboard-draw', ({ socketId, ...data }) => {
+    socket.on('whiteboard-draw', (data) => {
       setAllPaths(prev => {
-        const userPaths = prev[socketId] || [];
         if (data.isNew) {
-          return { 
-            ...prev, 
-            [socketId]: [
-              ...userPaths, 
-              { 
-                points: [data.point],
-                color: data.color || '#5865f2',
-                width: data.width || 3,
-                tool: data.tool || 'pencil',
-                userId: socketId 
-              }
-            ] 
-          };
-        } else {
-          const lastPath = userPaths[userPaths.length - 1];
-          if (lastPath) {
-            const updatedPath = { ...lastPath, points: [...lastPath.points, data.point] };
-            const updatedUserPaths = [...userPaths];
-            updatedUserPaths[updatedUserPaths.length - 1] = updatedPath;
-            return { ...prev, [socketId]: updatedUserPaths };
-          } else {
-            // Fallback if isNew was missed
-            return { ...prev, [socketId]: [{
+          return [
+            ...prev,
+            {
               points: [data.point],
               color: data.color || '#5865f2',
               width: data.width || 3,
               tool: data.tool || 'pencil',
-              userId: socketId
-            }] };
+              userId: data.socketId
+            }
+          ];
+        } else {
+          const next = [...prev];
+          for (let i = next.length - 1; i >= 0; i--) {
+            if (next[i].userId === data.socketId) {
+              next[i] = { ...next[i], points: [...next[i].points, data.point] };
+              break;
+            }
           }
+          return next;
         }
       });
     });
 
     socket.on('whiteboard-clear', ({ socketId }) => {
-      setAllPaths(prev => {
-        const next = { ...prev };
-        delete next[socketId];
-        return next;
-      });
+      setAllPaths(prev => prev.filter(p => p.userId !== socketId));
     });
 
     socket.on('whiteboard-history', (history) => {
@@ -100,56 +81,43 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const renderUserPaths = (uId: string, paths: Path[]) => {
-      if (!userBuffers.current[uId]) {
-        userBuffers.current[uId] = document.createElement('canvas');
-        userBuffers.current[uId].width = canvas.width;
-        userBuffers.current[uId].height = canvas.height;
-      }
-      const bCanvas = userBuffers.current[uId];
-      const bCtx = bCanvas.getContext('2d');
-      if (!bCtx) return;
-
-      bCtx.clearRect(0, 0, bCanvas.width, bCanvas.height);
-      
+    const renderPaths = (paths: Path[]) => {
       paths.forEach(path => {
         if (!path.points || path.points.length < 2) return;
         
-        bCtx.beginPath();
-        bCtx.lineCap = 'round';
-        bCtx.lineJoin = 'round';
-        bCtx.lineWidth = path.width;
+        ctx.beginPath();
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = path.width;
         
         if (path.tool === 'eraser') {
-          bCtx.globalCompositeOperation = 'destination-out';
-          bCtx.strokeStyle = 'rgba(0,0,0,1)';
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.strokeStyle = 'rgba(0,0,0,1)';
         } else {
-          bCtx.globalCompositeOperation = 'source-over';
-          bCtx.strokeStyle = path.color;
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.strokeStyle = path.color;
         }
 
-        bCtx.moveTo(path.points[0].x, path.points[0].y);
+        ctx.moveTo(path.points[0].x, path.points[0].y);
         for (let i = 1; i < path.points.length; i++) {
-          bCtx.lineTo(path.points[i].x, path.points[i].y);
+          ctx.lineTo(path.points[i].x, path.points[i].y);
         }
-        bCtx.stroke();
+        ctx.stroke();
       });
-
-      ctx.drawImage(bCanvas, 0, 0);
+      ctx.globalCompositeOperation = 'source-over'; // reset
     };
 
-    Object.entries(allPaths).forEach(([uId, paths]) => {
-      if (uId !== 'local') renderUserPaths(uId, paths);
-    });
+    renderPaths(allPaths);
 
-    const localPaths = allPaths['local'] || [];
-    renderUserPaths('local', [...localPaths, ...(currentPath.length > 0 ? [{
-      points: currentPath,
-      color,
-      width: lineWidth,
-      tool,
-      userId: 'local'
-    }] : [])] as Path[]);
+    if (currentPath.length > 0) {
+      renderPaths([{
+        points: currentPath,
+        color,
+        width: lineWidth,
+        tool,
+        userId: 'local'
+      }]);
+    }
 
   }, [allPaths, currentPath, color, lineWidth, tool]);
 
@@ -182,16 +150,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   const stopDrawing = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
-    setAllPaths(prev => ({
+    setAllPaths(prev => [
       ...prev,
-      ['local']: [...(prev['local'] || []), {
+      {
         points: currentPath,
         color,
         width: lineWidth,
         tool,
         userId: 'local'
-      }]
-    }));
+      }
+    ]);
     setCurrentPath([]);
   };
 
@@ -207,12 +175,29 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   };
 
   const clearOwn = () => {
-    setAllPaths(prev => {
-      const next = { ...prev };
-      delete next['local'];
-      return next;
-    });
+    setAllPaths(prev => prev.filter(p => p.userId !== 'local'));
     socket.emit('whiteboard-clear');
+  };
+
+  const downloadCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tCtx = tempCanvas.getContext('2d');
+    if (!tCtx) return;
+    
+    tCtx.fillStyle = '#2b2d31';
+    tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    tCtx.drawImage(canvas, 0, 0);
+    
+    const dataUrl = tempCanvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `whiteboard-${new Date().getTime()}.png`;
+    link.href = dataUrl;
+    link.click();
   };
 
   return (
@@ -261,12 +246,21 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
           </div>
         </div>
 
-        <button 
-          onClick={clearOwn}
-          className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase tracking-widest px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c]"
-        >
-          {t('voice_room.whiteboard.clear_own')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={downloadCanvas}
+            className="text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c] flex items-center gap-1"
+            title={t('voice_room.whiteboard.download')}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
+          </button>
+          <button 
+            onClick={clearOwn}
+            className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase tracking-widest px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c]"
+          >
+            {t('voice_room.whiteboard.clear_own')}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 relative cursor-crosshair overflow-hidden bg-[#2b2d31]">
