@@ -22,11 +22,13 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
-  const [messages, setMessages] = useState<{ username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string }[]>([]);
+  const [messages, setMessages] = useState<{ id?: string, username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string, reactions?: { [key: string]: string[] } }[]>([]);
   const [inputText, setInputText] = useState('');
   const [hiddenVideos, setHiddenVideos] = useState<Set<string>>(new Set());
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showDiceModal, setShowDiceModal] = useState(false);
+  const [activeReactionMsgId, setActiveReactionMsgId] = useState<string | null>(null);
+  const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
   const [numDice, setNumDice] = useState(1);
   const [diceType, setDiceType] = useState(20);
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
@@ -72,6 +74,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
     socket.on('chat-message', (msg) => setMessages((prev) => [...prev, msg]));
 
+    socket.on('chat-message-updated', (updatedMsg) => {
+      setMessages((prev) => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
+    });
+
     const handleReconnect = () => {
       socket.emit('reconnect-room', { roomId, userId, username, subRoom });
     };
@@ -85,6 +91,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       socket.off('user-toggled-video');
       socket.off('user-toggled-whiteboard');
       socket.off('chat-message');
+      socket.off('chat-message-updated');
       socket.off('connect', handleReconnect);
     };
   }, [roomId, userId, username, subRoom]);
@@ -115,7 +122,11 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputText.trim()) {
-      socket.emit('chat-message', { username, content: inputText });
+      socket.emit('chat-message', {
+        username,
+        content: inputText,
+        // Reaction needs a unique ID on creation, server assigns one but it helps to have it local for immediate UI if needed. We'll wait for server broadcast to avoid duplicates.
+      });
       setInputText('');
     }
   };
@@ -208,50 +219,93 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                     <p className="text-sm font-medium">{t('voice_room.no_messages')}</p>
                   </div>
                 ) : (
-                  messages.map((msg, i) => (
-                    <div key={i} className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      { (msg.text || msg.content) && (
-                        <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || msg.content}</p>
-                      )}
-                      
-                      {/* Generato se l'utente carica un file o un'immagine */}
-                      {msg.fileData && (
-                        <div className="mt-2">
-                          {msg.fileType?.startsWith('image/') ? (
-                            <a href={msg.fileData} download={msg.fileName} className="block w-fit">
-                              <img 
-                                src={msg.fileData} 
-                                alt={msg.fileName || 'Image'} 
-                                className="rounded-lg object-contain max-w-full" 
-                                style={{ maxHeight: '500px', maxWidth: '500px' }} 
-                              />
-                            </a>
-                          ) : (
-                            <a 
-                              href={msg.fileData} 
-                              download={msg.fileName} 
-                              className="flex items-center gap-3 p-3 bg-[#2b2d31] hover:bg-[#35373c] border border-[#1e1f22] rounded-lg w-fit transition-colors group cursor-pointer"
-                            >
-                              <div className="w-10 h-10 rounded bg-[#1e1f22] flex items-center justify-center group-hover:bg-[#232428]">
-                                <svg className="w-6 h-6 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-[#dbdee1] group-hover:text-white max-w-[200px] truncate">{msg.fileName}</span>
-                                <span className="text-xs text-gray-500">Documento</span>
-                              </div>
-                              <div className="ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-[#1e1f22] group-hover:bg-[#5865f2] transition-colors">
-                                <svg className="w-4 h-4 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
-                              </div>
-                            </a>
-                          )}
+                  messages.map((msg, i) => {
+                      const msgId = msg.id || i.toString();
+                      return (
+                      <div 
+                        key={msgId} 
+                        className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300 relative rounded-lg hover:bg-[#2b2d31] p-3 -mx-3 transition-colors"
+                        onMouseEnter={() => setActiveReactionMsgId(msgId)}
+                        onMouseLeave={() => setActiveReactionMsgId(null)}
+                      >
+                        {/* Reaction Bar (Hover) */}
+                        {activeReactionMsgId === msgId && msg.id && (
+                          <div className="absolute right-4 -top-4 bg-[#313338] border border-[#1e1f22] rounded flex shadow-lg overflow-hidden z-10 transition-opacity">
+                            {REACTION_EMOJIS.map(emoji => (
+                              <button 
+                                key={emoji}
+                                onClick={() => socket.emit('chat-reaction', { messageId: msg.id, reaction: emoji, username })}
+                                className="px-2 py-1.5 hover:bg-[#3f4147] transition-colors hover:scale-110"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
+                          <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                      )}
-                    </div>
-                  ))
+                        { (msg.text || msg.content) && (
+                          <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || msg.content}</p>
+                        )}
+                        
+                        {/* Generato se l'utente carica un file o un'immagine */}
+                        {msg.fileData && (
+                          <div className="mt-2">
+                            {msg.fileType?.startsWith('image/') ? (
+                              <a href={msg.fileData} download={msg.fileName} className="block w-fit">
+                                <img 
+                                  src={msg.fileData} 
+                                  alt={msg.fileName || 'Image'} 
+                                  className="rounded-lg object-contain max-w-full" 
+                                  style={{ maxHeight: '500px', maxWidth: '500px' }} 
+                                />
+                              </a>
+                            ) : (
+                              <a 
+                                href={msg.fileData} 
+                                download={msg.fileName} 
+                                className="flex items-center gap-3 p-3 bg-[#2b2d31] hover:bg-[#35373c] border border-[#1e1f22] rounded-lg w-fit transition-colors group cursor-pointer"
+                              >
+                                <div className="w-10 h-10 rounded bg-[#1e1f22] flex items-center justify-center group-hover:bg-[#232428]">
+                                  <svg className="w-6 h-6 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium text-[#dbdee1] group-hover:text-white max-w-[200px] truncate">{msg.fileName}</span>
+                                  <span className="text-xs text-gray-500">Documento</span>
+                                </div>
+                                <div className="ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-[#1e1f22] group-hover:bg-[#5865f2] transition-colors">
+                                  <svg className="w-4 h-4 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
+                                </div>
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Render Reactions */}
+                        {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {Object.entries(msg.reactions).map(([emoji, usersArr]) => {
+                              const hasReacted = usersArr.includes(username);
+                              return (
+                                <button
+                                  key={emoji}
+                                  onClick={() => msg.id && socket.emit('chat-reaction', { messageId: msg.id, reaction: emoji, username })}
+                                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border ${hasReacted ? 'bg-[#5865f2]/20 border-[#5865f2]/50 text-[#dbdee1]' : 'bg-[#2b2d31] border-[#1e1f22] text-gray-400 hover:border-gray-500'} transition-colors`}
+                                  title={usersArr.join(', ')}
+                                >
+                                  <span>{emoji}</span>
+                                  <span>{usersArr.length}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      );
+                    })
                 )}
                 <div ref={messagesEndRef} />
               </>
