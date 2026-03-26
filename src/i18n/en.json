@@ -1,0 +1,53 @@
+{
+  "join_room": {
+    "title": "MKvocal",
+    "username_label": "Username",
+    "username_placeholder": "Enter your username",
+    "room_id_label": "Room ID",
+    "room_id_placeholder": "Enter room ID",
+    "join_button": "Join"
+  },
+  "voice_room": {
+    "online": "Online",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "leave_room": "Leave Room",
+    "roll_dice": "Roll Dice",
+    "import_chat": "Import previous chat JSON",
+    "download_chat": "Download chat log JSON",
+    "enter_private": "Enter Private Room",
+    "exit_private": "Exit Private Room",
+    "dice_modal": {
+      "title": "Roll Dice",
+      "num_dice": "Number of Dice",
+      "dice_type": "Dice Type",
+      "roll_button": "ROLL"
+    },
+    "import_modal": {
+      "title": "Import Chat",
+      "messages_found": "Messages found",
+      "history": "History",
+      "how_to_proceed": "How do you want to proceed with these messages?",
+      "merge": "Merge with current chat",
+      "overwrite": "Overwrite current chat",
+      "cancel": "Cancel",
+      "overwrite_confirm": "Warning: this operation will delete all current messages in the room. Click OK to confirm."
+    },
+    "json_invalid": "Invalid JSON format for chat.",
+    "json_error": "Error reading JSON: file corrupted."
+  },
+  "user_list": {
+    "members": "Members",
+    "common_room": "Common Room",
+    "private_room": "Private Room",
+    "you": "You",
+    "voice_connected": "Voice Connected",
+    "no_users": "No users"
+  },
+  "chat_box": {
+    "placeholder": "Message...",
+    "send": "Send",
+    "attach": "Attach file",
+    "download_image": "Download image"
+  }
+}

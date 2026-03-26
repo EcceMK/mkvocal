@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import { useI18n } from '../lib/i18n';
 
 interface User {
   userId: string;
@@ -16,6 +15,7 @@ interface UserListProps {
 }
 
 const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }) => {
+  const { t } = useI18n();
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
           <span className={`font-medium transition-colors ${isSpeaking ? 'text-[#23a559]' : user.isYou ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
             {user.username}
           </span>
-          {user.isYou && <span className="text-[10px] text-gray-400 uppercase font-bold">You</span>}
+          {user.isYou && <span className="text-[10px] text-gray-400 uppercase font-bold">{t('user_list.you')}</span>}
         </div>
       </div>
     );
@@ -63,7 +63,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
   return (
     <div className="sidebar w-64 flex-shrink-0 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31]">
       <div className="p-4 border-b border-[#1e1f22]">
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Membri — {users.length + (currentUser ? 1 : 0)}</h2>
+        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
@@ -71,22 +71,22 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
         <div className="space-y-2">
           <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            Stanza Comune
+            {t('user_list.common_room')}
           </div>
           {currentUser?.subRoom === 'common' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking })}
           {commonUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId }))}
-          {commonUsers.length === 0 && currentUser?.subRoom !== 'common' && <p className="text-[11px] text-gray-500 italic pl-2">Nessun utente</p>}
+          {commonUsers.length === 0 && currentUser?.subRoom !== 'common' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
         </div>
 
         {/* Stanza Privata */}
         <div className="space-y-2">
           <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-            Stanza Privata
+            {t('user_list.private_room')}
           </div>
           {currentUser?.subRoom === 'private' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking })}
           {privateUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId }))}
-          {privateUsers.length === 0 && currentUser?.subRoom !== 'private' && <p className="text-[11px] text-gray-500 italic pl-2">Nessun utente</p>}
+          {privateUsers.length === 0 && currentUser?.subRoom !== 'private' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
         </div>
       </div>
 
@@ -94,7 +94,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
       <div className="p-2 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1">
         <span className="text-[10px] items-center gap-1.5 font-bold text-[#23a559] uppercase tracking-wider flex">
           <span className="w-2 h-2 rounded-full bg-[#23a559] animate-pulse"></span>
-          Voice Connected
+          {t('user_list.voice_connected')}
         </span>
         <span className="font-mono text-gray-200 text-lg tracking-wider font-semibold">
           {formatTime(seconds)}

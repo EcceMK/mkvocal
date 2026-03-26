@@ -1,0 +1,53 @@
+{
+  "join_room": {
+    "title": "MKvocal",
+    "username_label": "Username",
+    "username_placeholder": "Inserisci il tuo username",
+    "room_id_label": "ID Stanza",
+    "room_id_placeholder": "Inserisci ID stanza",
+    "join_button": "Entra"
+  },
+  "voice_room": {
+    "online": "Online",
+    "mute": "Muta",
+    "unmute": "Riattiva Audio",
+    "leave_room": "Lascia Stanza",
+    "roll_dice": "Tira il Dado",
+    "import_chat": "Importa Chat JSON precedente",
+    "download_chat": "Scarica log Chat JSON",
+    "enter_private": "Entra in Stanza Privata",
+    "exit_private": "Esci da Stanza Privata",
+    "dice_modal": {
+      "title": "Tira il Dado",
+      "num_dice": "Numero di Dadi",
+      "dice_type": "Tipo di Dado",
+      "roll_button": "LANCIA"
+    },
+    "import_modal": {
+      "title": "Importa Chat",
+      "messages_found": "Messaggi trovati",
+      "history": "Cronologia",
+      "how_to_proceed": "Come vuoi procedere con questi messaggi?",
+      "merge": "Unisci alla chat attuale",
+      "overwrite": "Sovrascrivi chat attuale",
+      "cancel": "Annulla",
+      "overwrite_confirm": "Attenzione: questa operazione cancellerà tutti i messaggi attuali della stanza. Clicca OK per confermare."
+    },
+    "json_invalid": "Formato JSON non valido per la chat.",
+    "json_error": "Errore lettura JSON: file corrotto."
+  },
+  "user_list": {
+    "members": "Membri",
+    "common_room": "Stanza Comune",
+    "private_room": "Stanza Privata",
+    "you": "Tu",
+    "voice_connected": "Voce Connessa",
+    "no_users": "Nessun utente"
+  },
+  "chat_box": {
+    "placeholder": "Messaggio...",
+    "send": "Invia",
+    "attach": "Allega file",
+    "download_image": "Scarica immagine"
+  }
+}
