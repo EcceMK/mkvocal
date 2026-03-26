@@ -22,7 +22,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
-  const [messages, setMessages] = useState<{ username: string, text: string }[]>([]);
+  const [messages, setMessages] = useState<{ username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string }[]>([]);
   const [inputText, setInputText] = useState('');
   const [hiddenVideos, setHiddenVideos] = useState<Set<string>>(new Set());
   const [showWhiteboard, setShowWhiteboard] = useState(false);
@@ -32,6 +32,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     socket.on('all-users', (allUsers) => setUsers(allUsers));
@@ -119,6 +120,29 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 100 * 1024 * 1024) {
+      alert("File troppo grande (max 100MB)");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      socket.emit('chat-message', {
+        username,
+        content: '',
+        fileData: reader.result as string,
+        fileName: file.name,
+        fileType: file.type
+      });
+    };
+    reader.readAsDataURL(file);
+    if (chatFileInputRef.current) chatFileInputRef.current.value = '';
+  };
+
   const rollDice = () => {
     const results = [];
     let sum = 0;
@@ -190,7 +214,42 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                         <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
                         <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || (msg as any).content}</p>
+                      { (msg.text || msg.content) && (
+                        <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || msg.content}</p>
+                      )}
+                      
+                      {/* Generato se l'utente carica un file o un'immagine */}
+                      {msg.fileData && (
+                        <div className="mt-2">
+                          {msg.fileType?.startsWith('image/') ? (
+                            <a href={msg.fileData} download={msg.fileName} className="block w-fit">
+                              <img 
+                                src={msg.fileData} 
+                                alt={msg.fileName || 'Image'} 
+                                className="rounded-lg object-contain max-w-full" 
+                                style={{ maxHeight: '500px', maxWidth: '500px' }} 
+                              />
+                            </a>
+                          ) : (
+                            <a 
+                              href={msg.fileData} 
+                              download={msg.fileName} 
+                              className="flex items-center gap-3 p-3 bg-[#2b2d31] hover:bg-[#35373c] border border-[#1e1f22] rounded-lg w-fit transition-colors group cursor-pointer"
+                            >
+                              <div className="w-10 h-10 rounded bg-[#1e1f22] flex items-center justify-center group-hover:bg-[#232428]">
+                                <svg className="w-6 h-6 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-[#dbdee1] group-hover:text-white max-w-[200px] truncate">{msg.fileName}</span>
+                                <span className="text-xs text-gray-500">Documento</span>
+                              </div>
+                              <div className="ml-2 w-8 h-8 flex items-center justify-center rounded-full bg-[#1e1f22] group-hover:bg-[#5865f2] transition-colors">
+                                <svg className="w-4 h-4 text-gray-400 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
+                              </div>
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -230,17 +289,33 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           {/* Input Bar */}
           {!showWhiteboard && (
             <div className="p-4 bg-[#313338] shrink-0">
-              <form onSubmit={sendMessage} className="relative group">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder={t('voice_room.message_placeholder')}
-                  className="w-full bg-[#383a40] text-[#dbdee1] rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
-                />
-                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
-                  <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+              <form onSubmit={sendMessage} className="relative group flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => chatFileInputRef.current?.click()}
+                  className="w-10 h-10 rounded-full flex items-center justify-center bg-[#2b2d31] hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors shrink-0"
+                  title="Carica un file"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 </button>
+                <input
+                  type="file"
+                  className="hidden"
+                  ref={chatFileInputRef}
+                  onChange={handleFileUpload}
+                />
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder={t('voice_room.message_placeholder')}
+                    className="w-full bg-[#383a40] text-[#dbdee1] rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
+                  />
+                  <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
+                    <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                  </button>
+                </div>
               </form>
             </div>
           )}
