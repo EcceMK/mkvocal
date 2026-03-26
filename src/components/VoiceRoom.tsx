@@ -35,7 +35,12 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
   useEffect(() => {
     socket.on('all-users', (allUsers) => setUsers(allUsers));
-    socket.on('user-joined', (user) => setUsers((prev) => [...prev, user]));
+    socket.on('user-joined', (user) => {
+      setUsers((prev) => {
+        if (prev.some(u => u.socketId === user.socketId)) return prev;
+        return [...prev, user];
+      });
+    });
     socket.on('user-left', ({ socketId }) => {
       setUsers((prev) => prev.filter((u) => u.socketId !== socketId));
       setHiddenVideos(prev => {

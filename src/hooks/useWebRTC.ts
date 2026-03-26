@@ -18,6 +18,9 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   const [usersWithVideo, setUsersWithVideo] = useState<Set<string>>(new Set());
   
   const peersRef = useRef<{ [socketId: string]: RTCPeerConnection }>({});
+  const makingOfferRef = useRef<{ [socketId: string]: boolean }>({});
+  const ignoreOfferRef = useRef<{ [socketId: string]: boolean }>({});
+  const peerUserIdsRef = useRef<{ [socketId: string]: string }>({});
   const localStreamRef = useRef<MediaStream | null>(null);
   const subRoomRef = useRef<'common' | 'private'>('common');
   const analysersRef = useRef<{ [socketId: string]: AnalyserNode }>({});
@@ -31,6 +34,9 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
     if (peersRef.current[socketId]) {
       peersRef.current[socketId].close();
       delete peersRef.current[socketId];
+      delete makingOfferRef.current[socketId];
+      delete ignoreOfferRef.current[socketId];
+      delete peerUserIdsRef.current[socketId];
       if (analysersRef.current[socketId]) {
         delete analysersRef.current[socketId];
       }
@@ -43,10 +49,13 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
     }
   };
 
-  const createPeerConnection = (targetSocketId: string, stream: MediaStream, isCaller: boolean) => {
+  const createPeerConnection = (targetSocketId: string, targetUserId: string, stream: MediaStream) => {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
     });
+
+    peerUserIdsRef.current[targetSocketId] = targetUserId;
+    const polite = userId < targetUserId;
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -61,7 +70,6 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
         [targetSocketId]: remoteStream,
       }));
 
-      // Only setup audio analyser for remote stream if it has audio
       if (event.track.kind === 'audio' && audioContextRef.current) {
         const source = audioContextRef.current.createMediaStreamSource(remoteStream);
         const analyser = audioContextRef.current.createAnalyser();
@@ -75,12 +83,20 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
     pc.onnegotiationneeded = async () => {
       try {
-        const offer = await pc.createOffer();
-        if (pc.signalingState !== 'stable') return;
-        await pc.setLocalDescription(offer);
+        if (makingOfferRef.current[targetSocketId] || pc.signalingState !== 'stable') return;
+        makingOfferRef.current[targetSocketId] = true;
+        await pc.setLocalDescription();
         socket.emit('signal', { targetSocketId, signal: pc.localDescription });
-      } catch (e) {
-        console.error('Error on negotiation needed', e);
+      } catch (err) {
+        console.error('Error on negotiation needed:', err);
+      } finally {
+        makingOfferRef.current[targetSocketId] = false;
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'failed') {
+        pc.restartIce();
       }
     };
 
@@ -111,7 +127,7 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
           users.forEach((user: any) => {
             if (user.isVideoOn) videoUsers.add(user.socketId);
             if (user.subRoom === subRoomRef.current) {
-              const pc = createPeerConnection(user.socketId, stream, true);
+              const pc = createPeerConnection(user.socketId, user.userId, stream);
               peersRef.current[user.socketId] = pc;
               setPeers((prev) => [...prev, { socketId: user.socketId, pc }]);
             }
@@ -119,19 +135,19 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
           setUsersWithVideo(videoUsers);
         });
 
-        socket.on('user-joined', ({ socketId, subRoom: joinedSubRoom, isVideoOn: userVideoOn }) => {
+        socket.on('user-joined', ({ socketId, userId: joinedUserId, subRoom: joinedSubRoom, isVideoOn: userVideoOn }) => {
           if (userVideoOn) setUsersWithVideo(prev => new Set([...prev, socketId]));
           if (joinedSubRoom === subRoomRef.current) {
-            const pc = createPeerConnection(socketId, stream, false);
+            const pc = createPeerConnection(socketId, joinedUserId, stream);
             peersRef.current[socketId] = pc;
             setPeers((prev) => [...prev, { socketId, pc }]);
           }
         });
 
-        socket.on('user-switched-subroom', ({ socketId, subRoom: targetSubRoom }) => {
+        socket.on('user-switched-subroom', ({ socketId, userId: targetUserId, subRoom: targetSubRoom }) => {
           if (targetSubRoom === subRoomRef.current) {
             if (!peersRef.current[socketId]) {
-              const pc = createPeerConnection(socketId, stream, true);
+              const pc = createPeerConnection(socketId, targetUserId, stream);
               peersRef.current[socketId] = pc;
               setPeers((prev) => [...prev, { socketId, pc }]);
             }
@@ -150,22 +166,63 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
         });
 
         socket.on('signal', async ({ signal, callerId }) => {
-          const pc = peersRef.current[callerId];
-          if (!pc) return;
+          try {
+            const pc = peersRef.current[callerId];
+            if (!pc) return;
 
-          if (signal.type === 'offer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            socket.emit('signal', { targetSocketId: callerId, signal: pc.localDescription });
-          } else if (signal.type === 'answer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal));
-          } else if (signal.candidate) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(signal));
-            } catch (e) {
-              console.error('Error adding ice candidate', e);
+            if (signal.type === 'offer' || signal.type === 'answer') {
+              // Strict guard against late/duplicate answers that arrive when we aren't expecting them
+              if (signal.type === 'answer' && pc.signalingState !== 'have-local-offer') {
+                return;
+              }
+
+              const targetUserId = peerUserIdsRef.current[callerId];
+              const polite = userId < targetUserId;
+              const offerCollision = signal.type === 'offer' && (makingOfferRef.current[callerId] || pc.signalingState !== 'stable');
+
+              ignoreOfferRef.current[callerId] = !polite && offerCollision;
+              if (ignoreOfferRef.current[callerId]) {
+                return;
+              }
+
+              // Apply manual rollback if needed (polite peer encountering collision)
+              if (offerCollision && polite && pc.signalingState !== 'stable') {
+                try {
+                  await pc.setLocalDescription({ type: 'rollback' });
+                } catch (e) {
+                  console.warn('Manual rollback failed (ignoring)', e);
+                }
+              }
+
+              // Only accept descriptions if they won't cause immediate state errors based on our checks
+              try {
+                await pc.setRemoteDescription(new RTCSessionDescription(signal));
+              } catch (err) {
+                console.error('Failed to setRemoteDescription:', err);
+                return;
+              }
+
+              if (signal.type === 'offer' && pc.signalingState === 'have-remote-offer') {
+                try {
+                  await pc.setLocalDescription(); // Automatically creates and sets answer
+                  socket.emit('signal', { targetSocketId: callerId, signal: pc.localDescription });
+                } catch (err) {
+                  console.error('Failed to create/set local answer:', err);
+                }
+              }
+            } else if (signal.candidate) {
+              try {
+                if (pc.remoteDescription && pc.remoteDescription.type) {
+                  await pc.addIceCandidate(new RTCIceCandidate(signal));
+                }
+              } catch (e) {
+                if (!ignoreOfferRef.current[callerId]) {
+                  console.warn('Error adding ICE candidate (ignoring due to possible glare)', e);
+                }
+              }
             }
+          } catch (err) {
+            console.error('Error handling signal globally:', err);
           }
         });
 

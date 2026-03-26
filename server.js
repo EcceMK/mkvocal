@@ -33,6 +33,7 @@ app.prepare().then(() => {
 
   const users = {} // socketId -> { userId, username, roomId }
   const socketToRoom = {} // socketId -> roomId
+  const roomWhiteboards = {} // roomId -> { [socketId]: Path[] }
 
   io.on('connection', (socket) => {
     socket.on('join-room', ({ roomId, username, userId, subRoom = 'common' }) => {
@@ -59,6 +60,7 @@ app.prepare().then(() => {
       socket.emit('all-users', otherUsers)
       socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false })
 
+      // Send chat history
       const roomFile = path.join(dataDir, `room_${roomId}.json`)
       if (fs.existsSync(roomFile)) {
         try {
@@ -67,6 +69,11 @@ app.prepare().then(() => {
         } catch (err) {
           console.error('Error reading chat history', err)
         }
+      }
+
+      // Send whiteboard history
+      if (roomWhiteboards[roomId]) {
+        socket.emit('whiteboard-history', roomWhiteboards[roomId]);
       }
     })
 
@@ -229,7 +236,27 @@ app.prepare().then(() => {
     socket.on('whiteboard-draw', (data) => {
       const info = users[socket.id]
       if (info) {
-        socket.to(info.roomId).emit('whiteboard-draw', {
+        const roomId = info.roomId;
+        if (!roomWhiteboards[roomId]) roomWhiteboards[roomId] = {};
+        
+        if (data.isNew) {
+          if (!roomWhiteboards[roomId][socket.id]) roomWhiteboards[roomId][socket.id] = [];
+          roomWhiteboards[roomId][socket.id].push({
+            points: [data.point],
+            color: data.color,
+            width: data.width,
+            tool: data.tool,
+            userId: socket.id
+          });
+        } else {
+          const userPaths = roomWhiteboards[roomId][socket.id];
+          if (userPaths && userPaths.length > 0) {
+            const lastPath = userPaths[userPaths.length - 1];
+            lastPath.points.push(data.point);
+          }
+        }
+
+        socket.to(roomId).emit('whiteboard-draw', {
           ...data,
           socketId: socket.id
         });
@@ -239,9 +266,19 @@ app.prepare().then(() => {
     socket.on('whiteboard-clear', () => {
       const info = users[socket.id]
       if (info) {
+        if (roomWhiteboards[info.roomId]) {
+          delete roomWhiteboards[info.roomId][socket.id];
+        }
         socket.to(info.roomId).emit('whiteboard-clear', {
           socketId: socket.id
         });
+      }
+    })
+
+    socket.on('get-whiteboard-history', () => {
+      const info = users[socket.id]
+      if (info && roomWhiteboards[info.roomId]) {
+        socket.emit('whiteboard-history', roomWhiteboards[info.roomId]);
       }
     })
 

@@ -37,7 +37,19 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
       setAllPaths(prev => {
         const userPaths = prev[socketId] || [];
         if (data.isNew) {
-          return { ...prev, [socketId]: [...userPaths, { ...data, userId: socketId }] };
+          return { 
+            ...prev, 
+            [socketId]: [
+              ...userPaths, 
+              { 
+                points: [data.point],
+                color: data.color || '#5865f2',
+                width: data.width || 3,
+                tool: data.tool || 'pencil',
+                userId: socketId 
+              }
+            ] 
+          };
         } else {
           const lastPath = userPaths[userPaths.length - 1];
           if (lastPath) {
@@ -67,9 +79,16 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
       });
     });
 
+    socket.on('whiteboard-history', (history) => {
+      setAllPaths(history);
+    });
+
+    socket.emit('get-whiteboard-history');
+
     return () => {
       socket.off('whiteboard-draw');
       socket.off('whiteboard-clear');
+      socket.off('whiteboard-history');
     };
   }, []);
 
