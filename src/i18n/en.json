@@ -17,6 +17,8 @@
     "download_chat": "Download chat log JSON",
     "enter_private": "Enter Private Room",
     "exit_private": "Exit Private Room",
+    "video_on": "Start Camera",
+    "video_off": "Stop Camera",
     "dice_modal": {
       "title": "Roll Dice",
       "num_dice": "Number of Dice",

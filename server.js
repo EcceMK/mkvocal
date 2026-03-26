@@ -45,19 +45,19 @@ app.prepare().then(() => {
       }
 
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId, subRoom }
+      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: false }
       socketToRoom[socket.id] = roomId
 
       // Get all other users in the room
       const otherUsers = []
       for (const [sId, info] of Object.entries(users)) {
         if (info.roomId === roomId && sId !== socket.id) {
-          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom })
+          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom, isVideoOn: info.isVideoOn || false })
         }
       }
 
       socket.emit('all-users', otherUsers)
-      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom })
+      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false })
 
       const roomFile = path.join(dataDir, `room_${roomId}.json`)
       if (fs.existsSync(roomFile)) {
@@ -72,7 +72,7 @@ app.prepare().then(() => {
 
     socket.on('reconnect-room', ({ roomId, username, userId, subRoom = 'common' }) => {
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId, subRoom }
+      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: users[socket.id]?.isVideoOn || false }
       socketToRoom[socket.id] = roomId
     })
 
@@ -145,7 +145,14 @@ app.prepare().then(() => {
       }
     })
 
-    socket.on('signal', ({ targetSocketId, signal }) => {
+    socket.on('toggle-video', ({ isVideoOn }) => {
+    if (users[socket.id]) {
+      users[socket.id].isVideoOn = isVideoOn;
+      socket.to(users[socket.id].roomId).emit('user-toggled-video', { socketId: socket.id, isVideoOn });
+    }
+  });
+
+  socket.on('signal', ({ targetSocketId, signal }) => {
       io.to(targetSocketId).emit('signal', { signal, callerId: socket.id })
     })
 

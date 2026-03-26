@@ -8,6 +8,7 @@ import { useWebRTC } from '../hooks/useWebRTC';
 import socket from '../lib/socket';
 import { downloadChatLog } from '@/lib/downloadChatLog';
 import { useI18n } from '../lib/i18n';
+import VideoStream from './VideoStream';
 
 interface VoiceRoomProps {
   username: string;
@@ -18,8 +19,8 @@ interface VoiceRoomProps {
 
 const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
   const { t } = useI18n();
-  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string }[]>([]);
-  const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers } = useWebRTC(roomId, userId, username);
+  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean }[]>([]);
+  const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
@@ -72,6 +73,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       setUsers((prev) => prev.map((u) => (u.socketId === socketId ? { ...u, subRoom: newSubRoom } : u)));
     });
 
+    socket.on('user-toggled-video', ({ socketId, isVideoOn: userVideoOn }) => {
+      setUsers((prev) => prev.map(u => u.socketId === socketId ? { ...u, isVideoOn: userVideoOn } : u));
+    });
+
     const handleReconnect = () => {
       socket.emit('reconnect-room', { roomId, userId, username, subRoom });
     };
@@ -81,6 +86,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       socket.off('all-users');
       socket.off('user-joined');
       socket.off('user-switched-subroom');
+      socket.off('user-toggled-video');
       socket.off('connect', handleReconnect);
     };
   }, [roomId, userId, username, subRoom]);
@@ -126,12 +132,15 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     setShowDiceModal(false);
   };
 
+  const subRoomUsers = users.filter(u => (!u.subRoom || u.subRoom === 'common') === (subRoom === 'common'));
+  const hasVideos = isVideoOn || subRoomUsers.some(u => usersWithVideo.has(u.socketId));
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#313338] text-[#f2f3f5]">
       {/* Sidebar */}
       <UserList 
         users={users} 
-        currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local') }} 
+        currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn }} 
         speakingUsers={speakingUsers}
       />
 
@@ -143,8 +152,40 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           <span className="font-semibold text-white">{roomId}</span>
         </div>
 
-        {/* Chat Area */}
-        <ChatBox username={username} />
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Video Grid */}
+          {hasVideos && (
+            <div className="p-4 bg-[#2b2d31] border-b border-[#1e1f22] overflow-y-auto max-h-[50%] shrink-0">
+              <div className={`grid gap-4 ${
+                subRoomUsers.length + 1 <= 1 ? 'grid-cols-1' : 
+                subRoomUsers.length + 1 <= 2 ? 'grid-cols-2' : 
+                subRoomUsers.length + 1 <= 4 ? 'grid-cols-2 lg:grid-cols-4' : 
+                'grid-cols-2 lg:grid-cols-3'
+              }`}>
+                <VideoStream 
+                  stream={localStream} 
+                  username={username} 
+                  isLocal 
+                  isSpeaking={speakingUsers.has('local')} 
+                />
+                
+                {subRoomUsers.map(user => (
+                  <VideoStream 
+                    key={user.socketId}
+                    stream={remoteStreams[user.socketId]}
+                    username={user.username}
+                    isSpeaking={speakingUsers.has(user.socketId)}
+                    muted={false}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 flex flex-col min-h-0 bg-[#313338]">
+            <ChatBox username={username} />
+          </div>
+        </div>
 
         {/* Bottom Bar */}
         <div className="h-16 bg-[#232428] flex items-center justify-between px-4 mt-auto border-t border-[#1e1f22]">
@@ -173,6 +214,15 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </button>
+            <button
+              onClick={toggleVideo}
+              className={`p-2 rounded hover:bg-[#35373c] transition-colors flex items-center justify-center ${isVideoOn ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`}
+              title={isVideoOn ? t('voice_room.video_off') : t('voice_room.video_on')}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
             <button

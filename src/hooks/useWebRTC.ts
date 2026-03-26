@@ -14,6 +14,8 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [subRoom, setSubRoom] = useState<'common' | 'private'>('common');
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
+  const [isVideoOn, setIsVideoOn] = useState(false);
+  const [usersWithVideo, setUsersWithVideo] = useState<Set<string>>(new Set());
   
   const peersRef = useRef<{ [socketId: string]: RTCPeerConnection }>({});
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -21,7 +23,6 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   const analysersRef = useRef<{ [socketId: string]: AnalyserNode }>({});
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Update subRoomRef when state changes
   useEffect(() => {
     subRoomRef.current = subRoom;
   }, [subRoom]);
@@ -60,8 +61,8 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
         [targetSocketId]: remoteStream,
       }));
 
-      // Setup analyser for remote stream
-      if (audioContextRef.current) {
+      // Only setup audio analyser for remote stream if it has audio
+      if (event.track.kind === 'audio' && audioContextRef.current) {
         const source = audioContextRef.current.createMediaStreamSource(remoteStream);
         const analyser = audioContextRef.current.createAnalyser();
         analyser.fftSize = 512;
@@ -90,11 +91,11 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   useEffect(() => {
     const init = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        
         setLocalStream(stream);
         localStreamRef.current = stream;
 
-        // Initialize AudioContext for volume detection
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
         const audioCtx = new AudioContextClass();
         audioContextRef.current = audioCtx;
@@ -106,18 +107,21 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
         socket.emit('join-room', { roomId, userId, username, subRoom: subRoomRef.current });
 
-        socket.on('all-users', (users: { socketId: string, username: string, userId: string, subRoom: 'common' | 'private' }[]) => {
-          users.forEach((user) => {
-            // Only connect if in the same sub-room
+        socket.on('all-users', (users) => {
+          const videoUsers = new Set<string>();
+          users.forEach((user: any) => {
+            if (user.isVideoOn) videoUsers.add(user.socketId);
             if (user.subRoom === subRoomRef.current) {
               const pc = createPeerConnection(user.socketId, stream, true);
               peersRef.current[user.socketId] = pc;
               setPeers((prev) => [...prev, { socketId: user.socketId, pc }]);
             }
           });
+          setUsersWithVideo(videoUsers);
         });
 
-        socket.on('user-joined', ({ socketId, subRoom: joinedSubRoom }) => {
+        socket.on('user-joined', ({ socketId, subRoom: joinedSubRoom, isVideoOn: userVideoOn }) => {
+          if (userVideoOn) setUsersWithVideo(prev => new Set([...prev, socketId]));
           if (joinedSubRoom === subRoomRef.current) {
             const pc = createPeerConnection(socketId, stream, false);
             peersRef.current[socketId] = pc;
@@ -127,16 +131,23 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
         socket.on('user-switched-subroom', ({ socketId, subRoom: targetSubRoom }) => {
           if (targetSubRoom === subRoomRef.current) {
-            // User moved into our sub-room
             if (!peersRef.current[socketId]) {
               const pc = createPeerConnection(socketId, stream, true);
               peersRef.current[socketId] = pc;
               setPeers((prev) => [...prev, { socketId, pc }]);
             }
           } else {
-            // User moved out of our sub-room
             closePeer(socketId);
           }
+        });
+
+        socket.on('user-toggled-video', ({ socketId, isVideoOn: switchedOn }) => {
+          setUsersWithVideo(prev => {
+            const next = new Set(prev);
+            if (switchedOn) next.add(socketId);
+            else next.delete(socketId);
+            return next;
+          });
         });
 
         socket.on('signal', async ({ signal, callerId }) => {
@@ -161,6 +172,11 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
         socket.on('user-left', ({ socketId }) => {
           closePeer(socketId);
+          setUsersWithVideo(prev => {
+            const next = new Set(prev);
+            next.delete(socketId);
+            return next;
+          });
         });
 
         socket.on('room-full', () => {
@@ -168,22 +184,17 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
           window.location.reload();
         });
 
-        // Speaking detection loop
         const checkVolume = () => {
           const newSpeaking = new Set<string>();
           const dataArray = new Uint8Array(256);
-          const threshold = 40; // Sensitivity threshold for speaking detection
+          const threshold = 40;
 
           Object.entries(analysersRef.current).forEach(([id, analyser]) => {
             analyser.getByteFrequencyData(dataArray);
             let sum = 0;
-            for (let i = 0; i < dataArray.length; i++) {
-              sum += dataArray[i];
-            }
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
             const average = sum / dataArray.length;
-            if (average > threshold) {
-              newSpeaking.add(id);
-            }
+            if (average > threshold) newSpeaking.add(id);
           });
 
           setSpeakingUsers(newSpeaking);
@@ -192,8 +203,8 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
         requestAnimationFrame(checkVolume);
 
       } catch (err) {
-        console.error('Error accessing microphone', err);
-        alert('Could not access microphone. Please ensure permissions are granted.');
+        console.error('Error accessing media devices', err);
+        alert('Could not access microphone/camera. Please ensure permissions are granted.');
       }
     };
 
@@ -206,19 +217,59 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
       socket.off('all-users');
       socket.off('user-joined');
       socket.off('user-switched-subroom');
+      socket.off('user-toggled-video');
       socket.off('signal');
       socket.off('user-left');
       socket.off('room-full');
     };
   }, [roomId, userId, username]);
 
-  // Effect to switch sub-room
   const switchSubRoom = (newSubRoom: 'common' | 'private') => {
     setSubRoom(newSubRoom);
-    // Close all current peers
     Object.keys(peersRef.current).forEach(closePeer);
     socket.emit('switch-subroom', { subRoom: newSubRoom });
   };
 
-  return { localStream, remoteStreams, peers, subRoom, switchSubRoom, speakingUsers };
+  const toggleVideo = async () => {
+    if (!localStreamRef.current) return;
+
+    if (!isVideoOn) {
+      // Toggle Camera ON: Request stream and add track
+      try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTrack = videoStream.getVideoTracks()[0];
+        
+        localStreamRef.current.addTrack(videoTrack);
+        
+        // Add new track to all existing peer connections
+        Object.values(peersRef.current).forEach(pc => {
+          pc.addTrack(videoTrack, localStreamRef.current!);
+        });
+        
+        setIsVideoOn(true);
+        socket.emit('toggle-video', { isVideoOn: true });
+      } catch (err) {
+        console.error('Error starting video:', err);
+        alert('Could not start camera. Please check permissions.');
+      }
+    } else {
+      // Toggle Camera OFF: Stop track and remove it
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.stop();
+        localStreamRef.current.removeTrack(videoTrack);
+        
+        // Remove track from all peer connections
+        Object.values(peersRef.current).forEach(pc => {
+          const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+          if (sender) pc.removeTrack(sender);
+        });
+        
+        setIsVideoOn(false);
+        socket.emit('toggle-video', { isVideoOn: false });
+      }
+    }
+  };
+
+  return { localStream, remoteStreams, peers, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo };
 };
