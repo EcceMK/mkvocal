@@ -39,14 +39,22 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
         if (data.isNew) {
           return { ...prev, [socketId]: [...userPaths, { ...data, userId: socketId }] };
         } else {
-          const lastPath = { ...userPaths[userPaths.length - 1] };
-          if (lastPath && lastPath.points) {
-            lastPath.points = [...lastPath.points, data.point];
+          const lastPath = userPaths[userPaths.length - 1];
+          if (lastPath) {
+            const updatedPath = { ...lastPath, points: [...lastPath.points, data.point] };
             const updatedUserPaths = [...userPaths];
-            updatedUserPaths[updatedUserPaths.length - 1] = lastPath;
+            updatedUserPaths[updatedUserPaths.length - 1] = updatedPath;
             return { ...prev, [socketId]: updatedUserPaths };
+          } else {
+            // Fallback if isNew was missed
+            return { ...prev, [socketId]: [{
+              points: [data.point],
+              color: data.color || '#5865f2',
+              width: data.width || 3,
+              tool: data.tool || 'pencil',
+              userId: socketId
+            }] };
           }
-          return prev;
         }
       });
     });

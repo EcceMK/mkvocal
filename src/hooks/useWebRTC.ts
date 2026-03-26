@@ -73,17 +73,16 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-    if (isCaller) {
-      pc.onnegotiationneeded = async () => {
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          socket.emit('signal', { targetSocketId, signal: pc.localDescription });
-        } catch (e) {
-          console.error('Error on negotiation needed', e);
-        }
-      };
-    }
+    pc.onnegotiationneeded = async () => {
+      try {
+        const offer = await pc.createOffer();
+        if (pc.signalingState !== 'stable') return;
+        await pc.setLocalDescription(offer);
+        socket.emit('signal', { targetSocketId, signal: pc.localDescription });
+      } catch (e) {
+        console.error('Error on negotiation needed', e);
+      }
+    };
 
     return pc;
   };
@@ -234,35 +233,39 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
     if (!localStreamRef.current) return;
 
     if (!isVideoOn) {
-      // Toggle Camera ON: Request stream and add track
       try {
         const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
         const videoTrack = videoStream.getVideoTracks()[0];
-        
         localStreamRef.current.addTrack(videoTrack);
         
-        // Add new track to all existing peer connections
         Object.values(peersRef.current).forEach(pc => {
-          pc.addTrack(videoTrack, localStreamRef.current!);
+          const senders = pc.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(videoTrack);
+          } else {
+            pc.addTrack(videoTrack, localStreamRef.current!);
+          }
         });
         
         setIsVideoOn(true);
         socket.emit('toggle-video', { isVideoOn: true });
       } catch (err) {
         console.error('Error starting video:', err);
-        alert('Could not start camera. Please check permissions.');
       }
     } else {
-      // Toggle Camera OFF: Stop track and remove it
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.stop();
         localStreamRef.current.removeTrack(videoTrack);
         
-        // Remove track from all peer connections
         Object.values(peersRef.current).forEach(pc => {
           const sender = pc.getSenders().find(s => s.track?.kind === 'video');
-          if (sender) pc.removeTrack(sender);
+          if (sender) {
+            // Instead of removeTrack, we can replace with null to keep the transceiver
+            // but removeTrack is safer for lazy-loading.
+            pc.removeTrack(sender);
+          }
         });
         
         setIsVideoOn(false);

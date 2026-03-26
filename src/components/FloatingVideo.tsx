@@ -25,8 +25,14 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const video = videoRef.current;
+    if (video && stream) {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        video.play().catch(e => console.error("Error playing video:", e));
+      };
+      // For cases where metadata is already loaded
+      video.play().catch(() => {});
     }
   }, [stream]);
 
