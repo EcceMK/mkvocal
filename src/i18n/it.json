@@ -20,6 +20,14 @@
     "exit_private": "Esci da Stanza Privata",
     "video_on": "Attiva Camera",
     "video_off": "Spegni Camera",
+    "whiteboard_on": "Apri Lavagna",
+    "whiteboard_off": "Chiudi Lavagna",
+    "whiteboard": {
+      "pencil": "Matita",
+      "eraser": "Gomma",
+      "clear_own": "Pulisci Mia",
+      "size": "Spessore"
+    },
     "message_placeholder": "Scrivi un messaggio...",
     "no_messages": "Nessun messaggio",
     "dice_modal": {

@@ -8,6 +8,7 @@ import { downloadChatLog } from '@/lib/downloadChatLog';
 import { useI18n } from '../lib/i18n';
 import FloatingVideo from './FloatingVideo';
 import AudioStream from './AudioStream';
+import Whiteboard from './Whiteboard';
 
 interface VoiceRoomProps {
   username: string;
@@ -24,6 +25,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [messages, setMessages] = useState<{ username: string, text: string }[]>([]);
   const [inputText, setInputText] = useState('');
   const [hiddenVideos, setHiddenVideos] = useState<Set<string>>(new Set());
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showDiceModal, setShowDiceModal] = useState(false);
   const [numDice, setNumDice] = useState(1);
   const [diceType, setDiceType] = useState(20);
@@ -144,12 +146,12 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   return (
     <div className="flex flex-col h-full bg-[#313338] text-white overflow-hidden relative mk-h-100">
       <div className="flex-1 flex overflow-hidden min-h-0">
-        <UserList
-          users={users}
-          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn }}
+        <UserList 
+          users={users} 
+          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn }} 
           speakingUsers={speakingUsers}
         />
-
+        
         <main className="flex-1 flex flex-col min-w-0 bg-[#313338] relative">
           {/* Header */}
           <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0">
@@ -157,24 +159,30 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
             <span className="font-semibold text-white">{roomId}</span>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-2">
-                <p className="text-sm font-medium">{t('voice_room.no_messages')}</p>
-              </div>
+          {/* Messages or Whiteboard */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent flex flex-col">
+            {showWhiteboard ? (
+              <Whiteboard userId={userId} />
             ) : (
-              messages.map((msg, i) => (
-                <div key={i} className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
-                    <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <>
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-2">
+                    <p className="text-sm font-medium">{t('voice_room.no_messages')}</p>
                   </div>
-                  <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || (msg as any).content}</p>
-                </div>
-              ))
+                ) : (
+                  messages.map((msg, i) => (
+                    <div key={i} className="flex flex-col group animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-[#f2f3f5] hover:underline cursor-pointer">{msg.username}</span>
+                        <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || (msg as any).content}</p>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Floating Videos Layer */}
@@ -206,20 +214,22 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           </div>
 
           {/* Input Bar */}
-          <div className="p-4 bg-[#313338] shrink-0">
-            <form onSubmit={sendMessage} className="relative group">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder={t('voice_room.message_placeholder')}
-                className="w-full bg-[#383a40] text-[#dbdee1] rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
-              />
-              <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
-                <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
-              </button>
-            </form>
-          </div>
+          {!showWhiteboard && (
+            <div className="p-4 bg-[#313338] shrink-0">
+              <form onSubmit={sendMessage} className="relative group">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder={t('voice_room.message_placeholder')}
+                  className="w-full bg-[#383a40] text-[#dbdee1] rounded-lg px-4 py-3 pr-12 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
+                />
+                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                </button>
+              </form>
+            </div>
+          )}
         </main>
       </div>
 
@@ -240,6 +250,9 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           <button onClick={() => switchSubRoom(subRoom === 'common' ? 'private' : 'common')} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${subRoom === 'private' ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={subRoom === 'private' ? t('voice_room.exit_private') : t('voice_room.enter_private')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
           </button>
+          <button onClick={() => setShowWhiteboard(!showWhiteboard)} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${showWhiteboard ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`} title={showWhiteboard ? t('voice_room.whiteboard_off') : t('voice_room.whiteboard_on')}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+          </button>
           <button onClick={toggleVideo} className={`p-2 rounded hover:bg-[#35373c] transition-colors ${isVideoOn ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`} title={isVideoOn ? t('voice_room.video_off') : t('voice_room.video_on')}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           </button>
@@ -251,7 +264,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" transform="matrix(1 0 0 -1 0 24)" /></svg>
           </button>
           <button onClick={() => downloadChatLog(roomId)} className="p-2 rounded text-gray-300 hover:text-white hover:bg-[#35373c]" title={t('voice_room.download_chat')}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
           </button>
           <button onClick={handleLeave} className="p-2 rounded hover:bg-[#35373c] text-[#f23f42] hover:text-[#da373c]" title={t('voice_room.leave_room')}>
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" /></svg>
@@ -286,7 +299,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
       {pendingImport && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-[#313338] border border-[#1e1f22] rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-[#313338] border border-[#1e1f22] rounded-xl shadow-2xl w-full max-md overflow-hidden">
             <div className="p-4 border-b border-[#1e1f22] flex justify-between items-center bg-[#2b2d31]">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">Importa Chat</h2>
               <button onClick={() => setPendingImport(null)} className="text-gray-400 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>

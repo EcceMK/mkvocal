@@ -19,6 +19,16 @@
     "exit_private": "Exit Private Room",
     "video_on": "Start Camera",
     "video_off": "Stop Camera",
+    "whiteboard_on": "Open Whiteboard",
+    "whiteboard_off": "Close Whiteboard",
+    "whiteboard": {
+      "pencil": "Pencil",
+      "eraser": "Eraser",
+      "clear_own": "Clear Mine",
+      "size": "Size"
+    },
+    "message_placeholder": "Write a message...",
+    "no_messages": "No messages",
     "dice_modal": {
       "title": "Roll Dice",
       "num_dice": "Number of Dice",

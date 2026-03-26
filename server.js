@@ -226,6 +226,25 @@ app.prepare().then(() => {
       }
     })
 
+    socket.on('whiteboard-draw', (data) => {
+      const info = users[socket.id]
+      if (info) {
+        socket.to(info.roomId).emit('whiteboard-draw', {
+          ...data,
+          socketId: socket.id
+        });
+      }
+    })
+
+    socket.on('whiteboard-clear', () => {
+      const info = users[socket.id]
+      if (info) {
+        socket.to(info.roomId).emit('whiteboard-clear', {
+          socketId: socket.id
+        });
+      }
+    })
+
     socket.on('disconnect', () => {
       const info = users[socket.id]
       if (info) {
