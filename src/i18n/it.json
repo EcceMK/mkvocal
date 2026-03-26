@@ -20,6 +20,8 @@
     "exit_private": "Esci da Stanza Privata",
     "video_on": "Attiva Camera",
     "video_off": "Spegni Camera",
+    "message_placeholder": "Scrivi un messaggio...",
+    "no_messages": "Nessun messaggio",
     "dice_modal": {
       "title": "Tira il Dado",
       "num_dice": "Numero di Dadi",
