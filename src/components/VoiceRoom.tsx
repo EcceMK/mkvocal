@@ -78,6 +78,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       setMessages((prev) => prev.map(m => m.id === updatedMsg.id ? updatedMsg : m));
     });
 
+    socket.on('chat-history', (history) => {
+      setMessages(history);
+    });
+
     const handleReconnect = () => {
       socket.emit('reconnect-room', { roomId, userId, username, subRoom });
     };
@@ -92,6 +96,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       socket.off('user-toggled-whiteboard');
       socket.off('chat-message');
       socket.off('chat-message-updated');
+      socket.off('chat-history');
       socket.off('connect', handleReconnect);
     };
   }, [roomId, userId, username, subRoom]);
@@ -485,7 +490,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
       {pendingImport && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-[#313338] border border-[#1e1f22] rounded-xl shadow-2xl w-full max-md overflow-hidden">
+          <div className="bg-[#313338] border border-[#1e1f22] rounded-xl shadow-2xl w-full max-w-[600px] overflow-hidden">
             <div className="p-4 border-b border-[#1e1f22] flex justify-between items-center bg-[#2b2d31]">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">Importa Chat</h2>
               <button onClick={() => setPendingImport(null)} className="text-gray-400 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
