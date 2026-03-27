@@ -15,6 +15,7 @@
     "leave_room": "Lascia Stanza",
     "roll_dice": "Tira il Dado",
     "import_chat": "Importa Chat JSON precedente",
+    "importing_chat": "Importazione in corso...",
     "download_chat": "Scarica log Chat JSON",
     "enter_private": "Entra in Stanza Privata",
     "exit_private": "Esci da Stanza Privata",
@@ -54,7 +55,8 @@
       "merge": "Unisci alla chat attuale",
       "overwrite": "Sovrascrivi chat attuale",
       "cancel": "Annulla",
-      "overwrite_confirm": "Attenzione: questa operazione cancellerà tutti i messaggi attuali della stanza. Clicca OK per confermare."
+      "overwrite_confirm": "Attenzione: questa operazione cancellerà tutti i messaggi attuali della stanza. Clicca OK per confermare.",
+      "importing_chat": "Importazione in corso..."
     },
     "json_invalid": "Formato JSON non valido per la chat.",
     "json_error": "Errore lettura JSON: file corrotto."

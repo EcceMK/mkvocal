@@ -32,6 +32,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [numDice, setNumDice] = useState(1);
   const [diceType, setDiceType] = useState(20);
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -80,6 +81,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
     socket.on('chat-history', (history) => {
       setMessages(history);
+      setIsImporting(false);
     });
 
     const handleReconnect = () => {
@@ -230,7 +232,12 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
               />
             ) : (
               <>
-                {messages.length === 0 ? (
+                {isImporting ? (
+                  <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
+                    <svg className="w-8 h-8 animate-spin text-[#5865f2]" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p className="text-sm font-medium animate-pulse">{t('voice_room.importing_chat') || 'Importazione in corso...'}</p>
+                  </div>
+                ) : messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-2">
                     <p className="text-sm font-medium">{t('voice_room.no_messages')}</p>
                   </div>
@@ -501,8 +508,8 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                 <p><strong>Messaggi:</strong> {pendingImport.count}</p>
                 <p><strong>Periodo:</strong> {pendingImport.start} - {pendingImport.end}</p>
               </div>
-              <button onClick={() => { socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: false }); setPendingImport(null); }} className="w-full py-2 px-4 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded mb-2">{t('voice_room.import_modal.merge')}</button>
-              <button onClick={() => { if (window.confirm(t('voice_room.import_modal.overwrite_confirm'))) { socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: true }); setPendingImport(null); } }} className="w-full py-2 px-4 bg-[#da373c] hover:bg-[#c02026] text-white rounded">{t('voice_room.import_modal.overwrite')}</button>
+              <button onClick={() => { setIsImporting(true); socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: false }); setPendingImport(null); }} className="w-full py-2 px-4 bg-[#5865f2] hover:bg-[#4752c4] text-white rounded mb-2">{t('voice_room.import_modal.merge')}</button>
+              <button onClick={() => { if (window.confirm(t('voice_room.import_modal.overwrite_confirm'))) { setIsImporting(true); socket.emit('import-chat', { roomId, importedMessages: pendingImport.messages, overwrite: true }); setPendingImport(null); } }} className="w-full py-2 px-4 bg-[#da373c] hover:bg-[#c02026] text-white rounded">{t('voice_room.import_modal.overwrite')}</button>
             </div>
           </div>
         </div>
