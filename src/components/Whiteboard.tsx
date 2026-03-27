@@ -22,12 +22,24 @@ interface WhiteboardProps {
 const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const offCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [allPaths, setAllPaths] = useState<Path[]>([]);
   const [currentPath, setCurrentPath] = useState<Point[]>([]);
   const [tool, setTool] = useState<'pencil' | 'eraser'>('pencil');
   const [color, setColor] = useState('#5865f2');
   const [lineWidth, setLineWidth] = useState(3);
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [bgImageObj, setBgImageObj] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined' && !offCanvasRef.current) {
+      offCanvasRef.current = document.createElement('canvas');
+      offCanvasRef.current.width = 1600;
+      offCanvasRef.current.height = 1000;
+    }
+  }, []);
 
   useEffect(() => {
     socket.on('whiteboard-draw', (data) => {
@@ -64,14 +76,29 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
       setAllPaths(history);
     });
 
+    socket.on('whiteboard-bg', (bg) => {
+      setBackgroundImage(bg);
+    });
+
     socket.emit('get-whiteboard-history');
 
     return () => {
       socket.off('whiteboard-draw');
       socket.off('whiteboard-clear');
       socket.off('whiteboard-history');
+      socket.off('whiteboard-bg');
     };
   }, []);
+
+  useEffect(() => {
+    if (backgroundImage) {
+      const img = new Image();
+      img.src = backgroundImage;
+      img.onload = () => setBgImageObj(img);
+    } else {
+      setBgImageObj(null);
+    }
+  }, [backgroundImage]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,45 +108,70 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const renderPaths = (paths: Path[]) => {
-      paths.forEach(path => {
-        if (!path.points || path.points.length < 2) return;
-
-        ctx.beginPath();
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = path.width;
-
-        if (path.tool === 'eraser') {
-          ctx.globalCompositeOperation = 'destination-out';
-          ctx.strokeStyle = 'rgba(0,0,0,1)';
-        } else {
-          ctx.globalCompositeOperation = 'source-over';
-          ctx.strokeStyle = path.color;
-        }
-
-        ctx.moveTo(path.points[0].x, path.points[0].y);
-        for (let i = 1; i < path.points.length; i++) {
-          ctx.lineTo(path.points[i].x, path.points[i].y);
-        }
-        ctx.stroke();
-      });
-      ctx.globalCompositeOperation = 'source-over'; // reset
-    };
-
-    renderPaths(allPaths);
-
-    if (currentPath.length > 0) {
-      renderPaths([{
-        points: currentPath,
-        color,
-        width: lineWidth,
-        tool,
-        userId: 'local'
-      }]);
+    if (bgImageObj) {
+      const isHorizontal = bgImageObj.width >= bgImageObj.height;
+      let targetWidth, targetHeight;
+      if (isHorizontal) {
+        targetWidth = canvas.width;
+        targetHeight = bgImageObj.height * (canvas.width / bgImageObj.width);
+      } else {
+        targetHeight = canvas.height;
+        targetWidth = bgImageObj.width * (canvas.height / bgImageObj.height);
+      }
+      const offsetX = (canvas.width - targetWidth) / 2;
+      const offsetY = (canvas.height - targetHeight) / 2;
+      ctx.drawImage(bgImageObj, offsetX, offsetY, targetWidth, targetHeight);
     }
 
-  }, [allPaths, currentPath, color, lineWidth, tool]);
+    const offCanvas = offCanvasRef.current;
+    if (offCanvas) {
+      const offCtx = offCanvas.getContext('2d');
+      if (offCtx) {
+        offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+
+        const renderPaths = (paths: Path[]) => {
+          paths.forEach(path => {
+            if (!path.points || path.points.length < 2) return;
+
+            offCtx.beginPath();
+            offCtx.lineCap = 'round';
+            offCtx.lineJoin = 'round';
+            offCtx.lineWidth = path.width;
+
+            if (path.tool === 'eraser') {
+              offCtx.globalCompositeOperation = 'destination-out';
+              offCtx.strokeStyle = 'rgba(0,0,0,1)';
+            } else {
+              offCtx.globalCompositeOperation = 'source-over';
+              offCtx.strokeStyle = path.color;
+            }
+
+            offCtx.moveTo(path.points[0].x, path.points[0].y);
+            for (let i = 1; i < path.points.length; i++) {
+              offCtx.lineTo(path.points[i].x, path.points[i].y);
+            }
+            offCtx.stroke();
+          });
+          offCtx.globalCompositeOperation = 'source-over'; // reset
+        };
+
+        renderPaths(allPaths);
+
+        if (currentPath.length > 0) {
+          renderPaths([{
+            points: currentPath,
+            color,
+            width: lineWidth,
+            tool,
+            userId: 'local'
+          }]);
+        }
+
+        ctx.drawImage(offCanvas, 0, 0);
+      }
+    }
+
+  }, [allPaths, currentPath, color, lineWidth, tool, bgImageObj]);
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -179,6 +231,28 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     socket.emit('whiteboard-clear');
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert(t('voice_room.whiteboard.only_images_allowed') || 'Formato non supportato. Carica solo immagini.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setBackgroundImage(result);
+      socket.emit('whiteboard-bg', result);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearBackground = () => {
+    setBackgroundImage(null);
+    socket.emit('whiteboard-clear-bg');
+  };
+
   const downloadCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -219,6 +293,32 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
+          </div>
+
+          <div className="flex items-center ml-2 border-l border-[#1e1f22] pl-2 gap-1">
+            <input 
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleImageUpload} 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[10px] font-bold text-gray-400 hover:text-white transition-colors uppercase px-2 py-2 bg-[#1e1f22] rounded hover:bg-[#35373c] flex items-center gap-1 cursor-pointer"
+              title={t('voice_room.whiteboard.upload_bg') || 'Carica Sfondo'}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
+            </button>
+            {bgImageObj && (
+              <button
+                onClick={clearBackground}
+                className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase px-2 py-1 bg-[#1e1f22] rounded hover:bg-[#35373c] cursor-pointer"
+                title={t('voice_room.whiteboard.clear_bg') || 'Rimuovi Sfondo'}
+              >
+                X
+              </button>
+            )}
           </div>
 
           {tool === 'pencil' && (

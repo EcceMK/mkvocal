@@ -34,6 +34,7 @@ app.prepare().then(() => {
   const users = {} // socketId -> { userId, username, roomId }
   const socketToRoom = {} // socketId -> roomId
   const roomWhiteboards = {} // roomId -> { [socketId]: Path[] }
+  const roomBackgrounds = {} // roomId -> string
 
   io.on('connection', (socket) => {
     socket.on('join-room', ({ roomId, username, userId, subRoom = 'common' }) => {
@@ -74,6 +75,9 @@ app.prepare().then(() => {
       // Send whiteboard history
       if (roomWhiteboards[roomId]) {
         socket.emit('whiteboard-history', roomWhiteboards[roomId]);
+      }
+      if (roomBackgrounds[roomId]) {
+        socket.emit('whiteboard-bg', roomBackgrounds[roomId]);
       }
     })
 
@@ -286,8 +290,29 @@ app.prepare().then(() => {
 
     socket.on('get-whiteboard-history', () => {
       const info = users[socket.id]
-      if (info && roomWhiteboards[info.roomId]) {
-        socket.emit('whiteboard-history', roomWhiteboards[info.roomId]);
+      if (info) {
+        if (roomWhiteboards[info.roomId]) {
+          socket.emit('whiteboard-history', roomWhiteboards[info.roomId]);
+        }
+        if (roomBackgrounds[info.roomId]) {
+          socket.emit('whiteboard-bg', roomBackgrounds[info.roomId]);
+        }
+      }
+    })
+
+    socket.on('whiteboard-bg', (image) => {
+      const info = users[socket.id]
+      if (info) {
+        roomBackgrounds[info.roomId] = image;
+        socket.to(info.roomId).emit('whiteboard-bg', image);
+      }
+    })
+
+    socket.on('whiteboard-clear-bg', () => {
+      const info = users[socket.id]
+      if (info) {
+        delete roomBackgrounds[info.roomId];
+        socket.to(info.roomId).emit('whiteboard-bg', null);
       }
     })
 
