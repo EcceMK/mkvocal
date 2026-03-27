@@ -211,7 +211,18 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           {/* Messages or Whiteboard */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent flex flex-col">
             {showWhiteboard ? (
-              <Whiteboard userId={userId} />
+              <Whiteboard 
+                userId={userId} 
+                onSendToChat={(dataUrl: string) => {
+                  socket.emit('chat-message', {
+                    username,
+                    content: '',
+                    fileData: dataUrl,
+                    fileName: `whiteboard-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
+                    fileType: 'image/png'
+                  });
+                }} 
+              />
             ) : (
               <>
                 {messages.length === 0 ? (

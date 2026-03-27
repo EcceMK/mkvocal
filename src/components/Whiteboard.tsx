@@ -17,9 +17,10 @@ interface Path {
 
 interface WhiteboardProps {
   userId: string;
+  onSendToChat?: (dataUrl: string) => void;
 }
 
-const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
+const Whiteboard: React.FC<WhiteboardProps> = ({ userId, onSendToChat }) => {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const offCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -32,6 +33,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   const [lineWidth, setLineWidth] = useState(3);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [bgImageObj, setBgImageObj] = useState<HTMLImageElement | null>(null);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof document !== 'undefined' && !offCanvasRef.current) {
@@ -93,8 +95,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
   useEffect(() => {
     if (backgroundImage) {
       const img = new Image();
-      img.src = backgroundImage;
       img.onload = () => setBgImageObj(img);
+      img.src = backgroundImage;
     } else {
       setBgImageObj(null);
     }
@@ -274,6 +276,28 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
     link.click();
   };
 
+  const sendToChat = () => {
+    if (!onSendToChat) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tCtx = tempCanvas.getContext('2d');
+    if (!tCtx) return;
+
+    tCtx.fillStyle = '#2b2d31';
+    tCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    tCtx.drawImage(canvas, 0, 0);
+
+    const dataUrl = tempCanvas.toDataURL('image/png');
+    onSendToChat(dataUrl);
+
+    setToastMsg(t('voice_room.whiteboard.sent_to_chat_success') || 'Lavagna inviata in chat con successo!');
+    setTimeout(() => setToastMsg(null), 3000);
+  };
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[#2b2d31] rounded-lg overflow-hidden border border-[#1e1f22]">
       <div className="h-12 bg-[#232428] border-b border-[#1e1f22] flex items-center justify-between px-4 shrink-0">
@@ -355,6 +379,13 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4-4V4" /></svg>
           </button>
           <button
+            onClick={sendToChat}
+            className="text-[10px] font-bold text-gray-400 hover:text-[#5865f2] transition-colors uppercase px-2 py-2 bg-[#1e1f22] rounded hover:bg-[#35373c] flex items-center gap-1 cursor-pointer "
+            title={t('voice_room.whiteboard.send_to_chat') || "Invia in Chat"}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+          </button>
+          <button
             onClick={clearOwn}
             className="text-[10px] font-bold text-gray-400 hover:text-[#f23f42] transition-colors uppercase tracking-widest px-2 py-2 bg-[#1e1f22] rounded hover:bg-[#35373c] cursor-pointer "
           >
@@ -378,6 +409,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({ userId }) => {
           className="block w-full h-full"
           style={{ touchAction: 'none' }}
         />
+        {toastMsg && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#23a559] text-white px-6 py-2 rounded-full font-bold shadow-2xl text-sm z-50 animate-in fade-in slide-in-from-bottom-5">
+            {toastMsg}
+          </div>
+        )}
       </div>
     </div>
   );

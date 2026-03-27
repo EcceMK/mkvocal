@@ -26,7 +26,17 @@
       "pencil": "Matita",
       "eraser": "Gomma",
       "clear_own": "Pulisci Mia",
-      "size": "Spessore"
+      "size": "Spessore",
+      "send_to_chat": "Invia immagine in Chat",
+      "sent_to_chat_success": "Messaggio Lavagna inviato in chat con successo!",
+      "download": "Scarica Immagine",
+      "download_image_success": "Immagine scaricata con successo!",
+      "upload_bg": "Immagine di Sfondo",
+      "upload_bg_success": "Immagine di Sfondo impostata con successo!",
+      "upload_bg_error": "Errore durante l'impostazione dell'Immagine di Sfondo!",
+      "clear_bg": "Rimuovi Immagine di Sfondo",
+      "clear_bg_success": "Immagine di Sfondo rimossa con successo!",
+      "clear_bg_error": "Errore durante la rimozione dell'Immagine di Sfondo!"
     },
     "message_placeholder": "Scrivi un messaggio...",
     "no_messages": "Nessun messaggio",
