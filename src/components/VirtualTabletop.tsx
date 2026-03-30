@@ -60,7 +60,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
 
   const [allPaths, setAllPaths] = useState<VTTPath[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
-  const [tool, setTool] = useState<ToolType>('pencil');
+  const [tool, setTool] = useState<ToolType>('select');
   const [color, setColor] = useState('#5865f2');
   const [lineWidth, setLineWidth] = useState(3);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
@@ -198,7 +198,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
     if (!ctx) return;
 
     if (!inkCanvasRef.current) {
-        inkCanvasRef.current = document.createElement('canvas');
+      inkCanvasRef.current = document.createElement('canvas');
     }
     const inkCanvas = inkCanvasRef.current;
     const inkCtx = inkCanvas.getContext('2d');
@@ -207,12 +207,12 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
     const ratio = window.devicePixelRatio || 1;
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    
+
     if (canvas.width !== w * ratio || canvas.height !== h * ratio) {
-        canvas.width = w * ratio;
-        canvas.height = h * ratio;
-        inkCanvas.width = canvas.width;
-        inkCanvas.height = canvas.height;
+      canvas.width = w * ratio;
+      canvas.height = h * ratio;
+      inkCanvas.width = canvas.width;
+      inkCanvas.height = canvas.height;
     }
 
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -312,7 +312,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
       }
       if (tk.label) {
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${12/camera.zoom}px Inter, sans-serif`;
+        ctx.font = `bold ${12 / camera.zoom}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText(tk.label, tk.x + s / 2, tk.y + s + 16 / camera.zoom);
       }
@@ -550,7 +550,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
           if (data.background !== undefined) setBackgroundImage(data.background);
           if (data.gridSize) setGridSize(data.gridSize);
           if (data.showGrid !== undefined) setShowGrid(data.showGrid);
-          
+
           // Notify server to sync others
           socket.emit('vtt-import', data);
           setToastMsg("Tavolo caricato con successo!");
@@ -568,19 +568,19 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
 
   const handlePointerDownAction = (e: React.MouseEvent) => {
     if (e.button === 2) {
-       e.preventDefault();
-       const pos = screenToWorld(e.clientX, e.clientY);
-       const tks = tokensRef.current;
-       for (let i = tks.length - 1; i >= 0; i--) {
-         const tk = tks[i];
-         const dx = pos.x - (tk.x + tk.size / 2);
-         const dy = pos.y - (tk.y + tk.size / 2);
-         if (dx * dx + dy * dy <= (tk.size / 2) * (tk.size / 2)) {
-           setTokens(prev => prev.filter(t => t.id !== tk.id));
-           socket.emit('vtt-token-remove', { id: tk.id });
-           return;
-         }
-       }
+      e.preventDefault();
+      const pos = screenToWorld(e.clientX, e.clientY);
+      const tks = tokensRef.current;
+      for (let i = tks.length - 1; i >= 0; i--) {
+        const tk = tks[i];
+        const dx = pos.x - (tk.x + tk.size / 2);
+        const dy = pos.y - (tk.y + tk.size / 2);
+        if (dx * dx + dy * dy <= (tk.size / 2) * (tk.size / 2)) {
+          setTokens(prev => prev.filter(t => t.id !== tk.id));
+          socket.emit('vtt-token-remove', { id: tk.id });
+          return;
+        }
+      }
     }
   };
 
@@ -615,10 +615,10 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
           <ToolBtn active={tool === 'eraser'} onClick={() => setTool('eraser')} title={t('virtual_tabletop.eraser')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></ToolBtn>
         </div>
         <div className="flex bg-[#1e1f22] rounded-lg p-0.5 gap-0.5">
-          <ToolBtn active={tool === 'line'} onClick={() => setTool('line')} title={t('virtual_tabletop.line')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} strokeLinecap="round"/></svg></ToolBtn>
-          <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} title={t('virtual_tabletop.rectangle')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="6" width="16" height="12" rx="1" strokeWidth={2}/></svg></ToolBtn>
-          <ToolBtn active={tool === 'circle'} onClick={() => setTool('circle')} title={t('virtual_tabletop.circle')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8" strokeWidth={2}/></svg></ToolBtn>
-          <ToolBtn active={tool === 'arrow'} onClick={() => setTool('arrow')} title={t('virtual_tabletop.arrow')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19L19 5m0 0h-8m8 0v8"/></svg></ToolBtn>
+          <ToolBtn active={tool === 'line'} onClick={() => setTool('line')} title={t('virtual_tabletop.line')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="19" x2="19" y2="5" strokeWidth={2} strokeLinecap="round" /></svg></ToolBtn>
+          <ToolBtn active={tool === 'rect'} onClick={() => setTool('rect')} title={t('virtual_tabletop.rectangle')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="6" width="16" height="12" rx="1" strokeWidth={2} /></svg></ToolBtn>
+          <ToolBtn active={tool === 'circle'} onClick={() => setTool('circle')} title={t('virtual_tabletop.circle')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="8" strokeWidth={2} /></svg></ToolBtn>
+          <ToolBtn active={tool === 'arrow'} onClick={() => setTool('arrow')} title={t('virtual_tabletop.arrow')}><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 19L19 5m0 0h-8m8 0v8" /></svg></ToolBtn>
         </div>
         {tool !== 'select' && tool !== 'eraser' && (
           <div className="flex gap-1 ml-1">
@@ -632,23 +632,23 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
         <button onClick={() => setShowGrid(!showGrid)} className={`p-1.5 rounded ${showGrid ? 'bg-[#5865f2] text-white' : 'text-gray-400 hover:text-white'}`}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9h16M4 14h16M9 4v16" /></svg></button>
         <input type="number" value={gridSize} onChange={e => setGridSize(parseInt(e.target.value) || 50)} className="w-10 bg-transparent text-white text-[11px] text-center" />
         <input type="file" ref={tokenInputRef} className="hidden" onChange={(e) => {
-           const f = e.target.files?.[0]; if (!f) return;
-           const r = new FileReader(); r.onload = () => {
-             const tk = { id: genId(), x: 500, y: 500, size: gridSize, imageUrl: r.result as string, label: f.name.replace(/\.[^.]+$/, ''), userId };
-             setTokens(p => [...p, tk]); socket.emit('vtt-token-add', tk);
-           }; r.readAsDataURL(f);
-           e.target.value = '';
+          const f = e.target.files?.[0]; if (!f) return;
+          const r = new FileReader(); r.onload = () => {
+            const tk = { id: genId(), x: 500, y: 500, size: gridSize, imageUrl: r.result as string, label: f.name.replace(/\.[^.]+$/, ''), userId };
+            setTokens(p => [...p, tk]); socket.emit('vtt-token-add', tk);
+          }; r.readAsDataURL(f);
+          e.target.value = '';
         }} />
         <button onClick={() => tokenInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-white" title={t('virtual_tabletop.add_token')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
         <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
-           const f = e.target.files?.[0]; if (!f) return;
-           const r = new FileReader(); r.onload = () => { setBackgroundImage(r.result as string); socket.emit('vtt-bg', r.result); };
-           r.readAsDataURL(f);
-           e.target.value = '';
+          const f = e.target.files?.[0]; if (!f) return;
+          const r = new FileReader(); r.onload = () => { setBackgroundImage(r.result as string); socket.emit('vtt-bg', r.result); };
+          r.readAsDataURL(f);
+          e.target.value = '';
         }} />
         <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-white" title={t('virtual_tabletop.upload_bg')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></button>
-        <button onClick={handleUndo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4"/></svg></button>
-        <button onClick={handleRedo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4"/></svg></button>
+        <button onClick={handleUndo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4" /></svg></button>
+        <button onClick={handleRedo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4" /></svg></button>
         <button onClick={resetView} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.reset_view')}><svg className="w-5 h-5 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4 20v-5h5M20 4v5h-5" /></svg></button>
         <button onClick={handleExport} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.export_vtt')}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
         <button onClick={() => importInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.import_vtt')}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg></button>
