@@ -56,6 +56,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tokenInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   const [allPaths, setAllPaths] = useState<VTTPath[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -516,6 +517,55 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
   const preventContextMenu = useCallback((e: React.MouseEvent) => e.preventDefault(), []);
   const resetView = useCallback(() => setCamera({ x: 0, y: 0, zoom: 1 }), []);
 
+  const handleExport = () => {
+    const data = {
+      paths: allPaths,
+      tokens: tokens,
+      background: backgroundImage,
+      gridSize,
+      showGrid,
+      version: '1.0'
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vtt-export-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        if (data.paths || data.tokens || data.background !== undefined) {
+          // Update locally immediately for instant feedback
+          if (data.paths) setAllPaths(data.paths);
+          if (data.tokens) setTokens(data.tokens);
+          if (data.background !== undefined) setBackgroundImage(data.background);
+          if (data.gridSize) setGridSize(data.gridSize);
+          if (data.showGrid !== undefined) setShowGrid(data.showGrid);
+          
+          // Notify server to sync others
+          socket.emit('vtt-import', data);
+          setToastMsg("Tavolo caricato con successo!");
+          setTimeout(() => setToastMsg(null), 3000);
+          resetView();
+        }
+      } catch (err) {
+        console.error("Errore import VTT:", err);
+        alert("File JSON non valido o corrotto");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const handlePointerDownAction = (e: React.MouseEvent) => {
     if (e.button === 2) {
        e.preventDefault();
@@ -599,7 +649,10 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
         <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-white" title={t('virtual_tabletop.upload_bg')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></button>
         <button onClick={handleUndo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4"/></svg></button>
         <button onClick={handleRedo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4"/></svg></button>
-        <button onClick={resetView} className="p-1.5 text-gray-400 hover:text-white ml-auto" title={t('virtual_tabletop.reset_view')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+        <button onClick={resetView} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.reset_view')}><svg className="w-5 h-5 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M4 20v-5h5M20 4v5h-5" /></svg></button>
+        <button onClick={handleExport} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.export_vtt')}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></button>
+        <button onClick={() => importInputRef.current?.click()} className="p-2 text-gray-300 hover:text-white hover:bg-[#35373c] rounded transition-colors" title={t('vtt.import_vtt')}><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg></button>
+        <input type="file" ref={importInputRef} onChange={handleImport} className="hidden" accept=".json" />
         <button onClick={() => setIsFullScreen(!isFullScreen)} className={`p-1.5 rounded transition-all ${isFullScreen ? 'bg-[#f23f42] text-white' : 'text-gray-400 hover:text-white hover:bg-[#35373c]'}`} title={isFullScreen ? t('virtual_tabletop.exit_fullscreen') : t('virtual_tabletop.fullscreen')}>
           {isFullScreen ? (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>

@@ -479,6 +479,20 @@ app.prepare().then(() => {
       }
     })
 
+    socket.on('vtt-import', (data) => {
+      const info = users[socket.id];
+      if (info) {
+        const { roomId } = info;
+        if (data.paths) roomVTT[roomId] = data.paths;
+        if (data.tokens) roomTokens[roomId] = data.tokens;
+        if (data.background !== undefined) roomVTTBg[roomId] = data.background;
+        
+        io.to(roomId).emit('vtt-history', roomVTT[roomId] || []);
+        io.to(roomId).emit('vtt-tokens', roomTokens[roomId] || []);
+        io.to(roomId).emit('vtt-bg', roomVTTBg[roomId] || null);
+      }
+    });
+
     socket.on('disconnect', () => {
       const info = users[socket.id]
       if (info) {

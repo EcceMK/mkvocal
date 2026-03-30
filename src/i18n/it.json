@@ -99,6 +99,8 @@
     "resize_token": "Dimensione Token (px)",
     "reset_view": "Resetta Vista",
     "fullscreen": "Schermo Intero",
-    "exit_fullscreen": "Esci da Schermo Intero"
+    "exit_fullscreen": "Esci da Schermo Intero",
+    "export_vtt": "Esporta Tavolo (JSON)",
+    "import_vtt": "Importa Tavolo (JSON)"
   }
 }

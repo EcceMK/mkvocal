@@ -86,6 +86,8 @@
     "resize_token": "Token Size (px)",
     "reset_view": "Reset View",
     "fullscreen": "Fullscreen",
-    "exit_fullscreen": "Exit Fullscreen"
+    "exit_fullscreen": "Exit Fullscreen",
+    "export_vtt": "Export Tabletop (JSON)",
+    "import_vtt": "Import Tabletop (JSON)"
   }
 }
