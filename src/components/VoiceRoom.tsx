@@ -10,6 +10,8 @@ import FloatingVideo from './FloatingVideo';
 import AudioStream from './AudioStream';
 import Whiteboard from './Whiteboard';
 import VirtualTabletop from './VirtualTabletop';
+import LinkPreview from './LinkPreview';
+import { parseLinks } from '../lib/chatUtils';
 
 interface VoiceRoomProps {
   username: string;
@@ -303,7 +305,22 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                           <span className="text-[10px] text-gray-500 font-medium">Oggi alle {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         {(msg.text || msg.content) && (
-                          <p className="text-[#dbdee1] leading-relaxed break-words">{msg.text || msg.content}</p>
+                          <div className="text-[#dbdee1] leading-relaxed break-words">
+                            {parseLinks(msg.text || msg.content || '').map((token, idx) => (
+                              <React.Fragment key={idx}>
+                                {token.type === 'link' ? (
+                                  <>
+                                    <a href={token.content} target="_blank" rel="noopener noreferrer" className="text-[#5865f2] hover:underline">
+                                      {token.content}
+                                    </a>
+                                    <LinkPreview url={token.content} />
+                                  </>
+                                ) : (
+                                  token.content
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </div>
                         )}
 
                         {/* Generato se l'utente carica un file o un'immagine */}

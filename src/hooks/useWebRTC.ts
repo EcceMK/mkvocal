@@ -281,6 +281,7 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   }, [roomId, userId, username]);
 
   const switchSubRoom = (newSubRoom: 'common' | 'private') => {
+    subRoomRef.current = newSubRoom;
     setSubRoom(newSubRoom);
     Object.keys(peersRef.current).forEach(closePeer);
     socket.emit('switch-subroom', { subRoom: newSubRoom });

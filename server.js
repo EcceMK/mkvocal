@@ -106,6 +106,23 @@ app.prepare().then(() => {
       if (info) {
         info.subRoom = subRoom
         io.to(info.roomId).emit('user-switched-subroom', { userId: info.userId, socketId: socket.id, subRoom })
+        
+        // Invia la lista degli altri utenti nella stessa sotto-stanza a chi ha appena cambiato
+        const otherUsers = []
+        for (const [sId, otherInfo] of Object.entries(users)) {
+          if (otherInfo.roomId === info.roomId && sId !== socket.id && otherInfo.subRoom === subRoom) {
+            otherUsers.push({ 
+              userId: otherInfo.userId, 
+              username: otherInfo.username, 
+              socketId: sId, 
+              subRoom: otherInfo.subRoom, 
+              isVideoOn: otherInfo.isVideoOn || false, 
+              isWhiteboardOn: otherInfo.isWhiteboardOn || false, 
+              isVTTOn: otherInfo.isVTTOn || false 
+            })
+          }
+        }
+        socket.emit('all-users', otherUsers)
       }
     })
 
@@ -490,6 +507,34 @@ app.prepare().then(() => {
         io.to(roomId).emit('vtt-history', roomVTT[roomId] || []);
         io.to(roomId).emit('vtt-tokens', roomTokens[roomId] || []);
         io.to(roomId).emit('vtt-bg', roomVTTBg[roomId] || null);
+      }
+    });
+
+    socket.on('get-link-metadata', async ({ url }) => {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        if (!response.ok) throw new Error('Fetch failed');
+        const html = await response.text();
+        
+        const getMeta = (prop) => {
+          const match = html.match(new RegExp(`<meta[^>]+(?:property|name)=["'](?:og:|twitter:)?${prop}["'][^>]+content=["']([^"']+)["']`, 'i')) || 
+                        html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:|twitter:)?${prop}["']`, 'i'));
+          return match ? match[1] : null;
+        };
+
+        const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+        
+        const metadata = {
+          title: getMeta('title') || (titleMatch ? titleMatch[1] : null) || url,
+          description: getMeta('description'),
+          image: getMeta('image'),
+          siteName: getMeta('site_name'),
+          url: url
+        };
+        
+        socket.emit('link-metadata', { url, metadata });
+      } catch (err) {
+        socket.emit('link-metadata', { url, metadata: null });
       }
     });
 
