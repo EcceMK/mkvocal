@@ -50,19 +50,19 @@ app.prepare().then(() => {
       }
 
       socket.join(roomId)
-      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: false, isWhiteboardOn: false }
+      users[socket.id] = { userId, username, roomId, subRoom, isVideoOn: false, isWhiteboardOn: false, isVTTOn: false }
       socketToRoom[socket.id] = roomId
 
       // Get all other users in the room
       const otherUsers = []
       for (const [sId, info] of Object.entries(users)) {
         if (info.roomId === roomId && sId !== socket.id) {
-          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom, isVideoOn: info.isVideoOn || false, isWhiteboardOn: info.isWhiteboardOn || false })
+          otherUsers.push({ userId: info.userId, username: info.username, socketId: sId, subRoom: info.subRoom, isVideoOn: info.isVideoOn || false, isWhiteboardOn: info.isWhiteboardOn || false, isVTTOn: info.isVTTOn || false })
         }
       }
 
       socket.emit('all-users', otherUsers)
-      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false, isWhiteboardOn: false })
+      socket.to(roomId).emit('user-joined', { userId, username, socketId: socket.id, subRoom, isVideoOn: false, isWhiteboardOn: false, isVTTOn: false })
 
       // Send chat history
       const roomFile = path.join(dataDir, `room_${roomId}.json`)
@@ -181,6 +181,13 @@ app.prepare().then(() => {
       if (users[socket.id]) {
         users[socket.id].isWhiteboardOn = isWhiteboardOn;
         socket.to(users[socket.id].roomId).emit('user-toggled-whiteboard', { socketId: socket.id, isWhiteboardOn });
+      }
+    });
+
+    socket.on('toggle-vtt', ({ isVTTOn }) => {
+      if (users[socket.id]) {
+        users[socket.id].isVTTOn = isVTTOn;
+        socket.to(users[socket.id].roomId).emit('user-toggled-vtt', { socketId: socket.id, isVTTOn });
       }
     });
 

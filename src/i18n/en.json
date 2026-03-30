@@ -77,13 +77,15 @@
     "download": "Download",
     "send_to_chat": "Send to Chat",
     "sent_to_chat": "Sent to chat!",
-    "reset_view": "Reset View",
     "undo": "Undo",
     "redo": "Redo",
     "grid": "Grid",
     "select": "Select/Move",
     "add_token": "Add Token",
     "rename_token": "Rename Token",
-    "resize_token": "Token Size (px)"
+    "resize_token": "Token Size (px)",
+    "reset_view": "Reset View",
+    "fullscreen": "Fullscreen",
+    "exit_fullscreen": "Exit Fullscreen"
   }
 }

@@ -69,6 +69,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
   const [showGrid, setShowGrid] = useState(true);
   const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
   const [renderTick, setRenderTick] = useState(0);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const isDrawingRef = useRef(false);
   const currentPathRef = useRef<Point[]>([]);
@@ -316,7 +317,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
       }
     });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-  }, [allPaths, tokens, camera, bgImageObj, showGrid, gridSize, renderTick]);
+  }, [allPaths, tokens, camera, bgImageObj, showGrid, gridSize, renderTick, isFullScreen]);
 
   const drawShape = (ctx: CanvasRenderingContext2D, st: string, start: Point, end: Point) => {
     ctx.beginPath();
@@ -373,7 +374,6 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
         const dx = pos.x - (tk.x + tk.size / 2);
         const dy = pos.y - (tk.y + tk.size / 2);
         if (dx * dx + dy * dy <= (tk.size / 2) * (tk.size / 2)) {
-          // Check for Alt Key -> Duplicate
           if (e.altKey) {
             const newToken = { ...tk, id: genId(), x: tk.x + 20, y: tk.y + 20, userId };
             setTokens(prev => [...prev, newToken]);
@@ -479,13 +479,11 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
 
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    const ratio = window.devicePixelRatio || 1;
     const rect = canvasRef.current!.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     const pos = screenToWorld(e.clientX, e.clientY);
 
-    // Shift + Wheel -> Resize Token under mouse
     if (e.shiftKey) {
       const tks = tokensRef.current;
       for (let i = tks.length - 1; i >= 0; i--) {
@@ -559,7 +557,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#1e1f22] rounded-lg overflow-hidden border border-[#1e1f22] select-none">
+    <div className={`flex flex-col min-h-0 bg-[#1e1f22] select-none ${isFullScreen ? 'fixed inset-0 z-[200]' : 'flex-1 rounded-lg overflow-hidden border border-[#1e1f22]'}`}>
       <div className="bg-[#232428] border-b border-[#1e1f22] flex items-center gap-1 px-2 py-1.5 shrink-0 flex-wrap">
         <div className="flex bg-[#1e1f22] rounded-lg p-0.5 gap-0.5">
           <ToolBtn active={tool === 'select'} onClick={() => setTool('select')} title={t('virtual_tabletop.select')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg></ToolBtn>
@@ -589,7 +587,7 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
              const tk = { id: genId(), x: 500, y: 500, size: gridSize, imageUrl: r.result as string, label: f.name.replace(/\.[^.]+$/, ''), userId };
              setTokens(p => [...p, tk]); socket.emit('vtt-token-add', tk);
            }; r.readAsDataURL(f);
-           e.target.value = ''; // Allow same file upload multiple times
+           e.target.value = '';
         }} />
         <button onClick={() => tokenInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-white" title={t('virtual_tabletop.add_token')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></button>
         <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => {
@@ -601,7 +599,14 @@ const VirtualTabletop: React.FC<VirtualTabletopProps> = ({ userId, onSendToChat 
         <button onClick={() => fileInputRef.current?.click()} className="p-1.5 text-gray-400 hover:text-white" title={t('virtual_tabletop.upload_bg')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></button>
         <button onClick={handleUndo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a5 5 0 015 5v2M3 10l4-4m-4 4l4 4"/></svg></button>
         <button onClick={handleRedo} className="p-1.5 text-gray-400 hover:text-white"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a5 5 0 00-5 5v2m15-7l-4-4m4 4l-4 4"/></svg></button>
-        <button onClick={resetView} className="p-1.5 text-gray-400 hover:text-white ml-auto"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+        <button onClick={resetView} className="p-1.5 text-gray-400 hover:text-white ml-auto" title={t('virtual_tabletop.reset_view')}><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></button>
+        <button onClick={() => setIsFullScreen(!isFullScreen)} className={`p-1.5 rounded transition-all ${isFullScreen ? 'bg-[#f23f42] text-white' : 'text-gray-400 hover:text-white hover:bg-[#35373c]'}`} title={isFullScreen ? t('virtual_tabletop.exit_fullscreen') : t('virtual_tabletop.fullscreen')}>
+          {isFullScreen ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+          )}
+        </button>
       </div>
       <div ref={containerRef} className="flex-1 relative overflow-hidden bg-[#1e1f22]" onContextMenu={preventContextMenu} onMouseDown={handlePointerDownAction} onDoubleClick={handleDoubleClick}>
         <canvas ref={canvasRef} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp} className="block w-full h-full" style={{ touchAction: 'none' }} />

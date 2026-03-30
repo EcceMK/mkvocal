@@ -90,13 +90,15 @@
     "download": "Scarica",
     "send_to_chat": "Invia in Chat",
     "sent_to_chat": "Inviato in chat!",
-    "reset_view": "Reset Vista",
     "undo": "Annulla",
     "redo": "Ripeti",
     "grid": "Griglia",
     "select": "Seleziona/Muovi",
     "add_token": "Aggiungi Token",
     "rename_token": "Rinomina Token",
-    "resize_token": "Dimensione Token (px)"
+    "resize_token": "Dimensione Token (px)",
+    "reset_view": "Resetta Vista",
+    "fullscreen": "Schermo Intero",
+    "exit_fullscreen": "Esci da Schermo Intero"
   }
 }

@@ -20,7 +20,7 @@ interface VoiceRoomProps {
 
 const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
   const { t } = useI18n();
-  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean }[]>([]);
+  const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState<{ id?: string, username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string, reactions?: { [key: string]: string[] } }[]>([]);
@@ -76,6 +76,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       setUsers((prev) => prev.map(u => u.socketId === socketId ? { ...u, isWhiteboardOn } : u));
     });
 
+    socket.on('user-toggled-vtt', ({ socketId, isVTTOn }) => {
+      setUsers((prev) => prev.map(u => u.socketId === socketId ? { ...u, isVTTOn } : u));
+    });
+
     socket.on('chat-message', (msg) => setMessages((prev) => [...prev, msg]));
 
     socket.on('chat-message-updated', (updatedMsg) => {
@@ -113,6 +117,10 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   useEffect(() => {
     socket.emit('toggle-whiteboard', { isWhiteboardOn: showWhiteboard });
   }, [showWhiteboard]);
+
+  useEffect(() => {
+    socket.emit('toggle-vtt', { isVTTOn: showVTT });
+  }, [showVTT]);
 
   const toggleMute = () => {
     if (localStream) {
@@ -207,7 +215,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
       <div className="flex-1 flex overflow-hidden min-h-0">
         <UserList
           users={users}
-          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard }}
+          currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard, isVTTOn: showVTT }}
           speakingUsers={speakingUsers}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
@@ -216,8 +224,8 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
         <main className="flex-1 flex flex-col min-w-0 bg-[#313338] relative">
           {/* Header */}
           <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="mr-3 p-1.5 rounded hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors md:hidden"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -227,7 +235,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           </div>
 
           {/* Messages or Whiteboard or VTT */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent flex flex-col">
+          <div className={`flex-1 overflow-y-auto ${showVTT || showWhiteboard ? '' : 'p-4 space-y-4'} scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent flex flex-col`}>
             {showVTT ? (
               <VirtualTabletop
                 userId={userId}
@@ -242,8 +250,8 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                 }}
               />
             ) : showWhiteboard ? (
-              <Whiteboard 
-                userId={userId} 
+              <Whiteboard
+                userId={userId}
                 onSendToChat={(dataUrl: string) => {
                   socket.emit('chat-message', {
                     username,
@@ -252,7 +260,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                     fileName: `whiteboard-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
                     fileType: 'image/png'
                   });
-                }} 
+                }}
               />
             ) : (
               <>
@@ -388,7 +396,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           </div>
 
           {/* Input Bar */}
-          {!showWhiteboard && (
+          {!showWhiteboard && !showVTT && (
             <div className="p-4 bg-[#313338] shrink-0">
               <form onSubmit={sendMessage} className="relative group flex items-center gap-2">
                 <button

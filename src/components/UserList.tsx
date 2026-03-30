@@ -8,11 +8,12 @@ interface User {
   subRoom?: string;
   isVideoOn?: boolean;
   isWhiteboardOn?: boolean;
+  isVTTOn?: boolean;
 }
 
 interface UserListProps {
   users: User[];
-  currentUser: { userId: string; username: string; subRoom: string; isSpeaking: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean } | null;
+  currentUser: { userId: string; username: string; subRoom: string; isSpeaking: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean } | null;
   speakingUsers: Set<string>;
   isOpen: boolean;
   onClose: () => void;
@@ -42,14 +43,14 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
   const commonUsers = users.filter(u => !u.subRoom || u.subRoom === 'common');
   const privateUsers = users.filter(u => u.subRoom === 'private');
 
-  const renderUser = (user: { username: string; socketId?: string; isYou?: boolean; isSpeaking?: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean }) => {
+  const renderUser = (user: { username: string; socketId?: string; isYou?: boolean; isSpeaking?: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }) => {
     const isSpeaking = user.isSpeaking || (user.socketId && speakingUsers.has(user.socketId));
 
     return (
       <div key={user.socketId || 'you'} className="flex items-center gap-3 p-2 rounded hover:bg-[#35373c] transition-colors group">
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white uppercase transition-all duration-200 ${isSpeaking
-            ? 'bg-[#23a559] ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31] scale-110'
-            : user.isYou ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
+          ? 'bg-[#23a559] ring-2 ring-[#23a559] ring-offset-2 ring-offset-[#2b2d31] scale-110'
+          : user.isYou ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
           }`}>
           {user.username[0]}
         </div>
@@ -65,7 +66,10 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
                 </svg>
               )}
               {user.isWhiteboardOn && (
-                <svg className="w-3.5 h-3.5 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                <svg className="w-3.5 h-3.5 text-[#23a559]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              )}
+              {user.isVTTOn && (
+                <svg className="w-3.5 h-3.5 text-[#5865f2]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16M9 4v16M15 4v16M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
               )}
             </div>
           </div>
@@ -79,8 +83,8 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
     <>
       {/* Overlay per chiudere la sidebar (solo mobile) */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden" 
+        <div
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden"
           onClick={onClose}
         />
       )}
@@ -95,41 +99,41 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
           </button>
         </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Stanza Comune */}
-        <div className="space-y-2">
-          <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            {t('user_list.common_room')}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Stanza Comune */}
+          <div className="space-y-2">
+            <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+              {t('user_list.common_room')}
+            </div>
+            {currentUser?.subRoom === 'common' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking, isVideoOn: currentUser.isVideoOn, isWhiteboardOn: currentUser.isWhiteboardOn, isVTTOn: currentUser.isVTTOn })}
+            {commonUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId, isVideoOn: user.isVideoOn, isWhiteboardOn: user.isWhiteboardOn, isVTTOn: user.isVTTOn }))}
+            {commonUsers.length === 0 && currentUser?.subRoom !== 'common' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
           </div>
-          {currentUser?.subRoom === 'common' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking, isVideoOn: currentUser.isVideoOn, isWhiteboardOn: currentUser.isWhiteboardOn })}
-          {commonUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId, isVideoOn: user.isVideoOn, isWhiteboardOn: user.isWhiteboardOn }))}
-          {commonUsers.length === 0 && currentUser?.subRoom !== 'common' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
+
+          {/* Stanza Privata */}
+          <div className="space-y-2">
+            <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+              {t('user_list.private_room')}
+            </div>
+            {currentUser?.subRoom === 'private' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking, isVideoOn: currentUser.isVideoOn, isWhiteboardOn: currentUser.isWhiteboardOn, isVTTOn: currentUser.isVTTOn })}
+            {privateUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId, isVideoOn: user.isVideoOn, isWhiteboardOn: user.isWhiteboardOn, isVTTOn: user.isVTTOn }))}
+            {privateUsers.length === 0 && currentUser?.subRoom !== 'private' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
+          </div>
         </div>
 
-        {/* Stanza Privata */}
-        <div className="space-y-2">
-          <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
-            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-            {t('user_list.private_room')}
-          </div>
-          {currentUser?.subRoom === 'private' && renderUser({ username: currentUser.username, isYou: true, isSpeaking: currentUser.isSpeaking, isVideoOn: currentUser.isVideoOn, isWhiteboardOn: currentUser.isWhiteboardOn })}
-          {privateUsers.map((user) => renderUser({ username: user.username, socketId: user.socketId, isVideoOn: user.isVideoOn, isWhiteboardOn: user.isWhiteboardOn }))}
-          {privateUsers.length === 0 && currentUser?.subRoom !== 'private' && <p className="text-[11px] text-gray-500 italic pl-2">{t('user_list.no_users')}</p>}
+        {/* Timer Widget */}
+        <div className="p-2 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1 shrink-0">
+          <span className="text-[10px] items-center gap-1.5 font-bold text-[#23a559] uppercase tracking-wider flex">
+            <span className="w-2 h-2 rounded-full bg-[#23a559] animate-pulse"></span>
+            {t('user_list.voice_connected')}
+          </span>
+          <span className="font-mono text-gray-200 text-lg tracking-wider font-semibold">
+            {formatTime(seconds)}
+          </span>
         </div>
       </div>
-
-      {/* Timer Widget */}
-      <div className="p-2 border-t border-[#1e1f22] flex flex-col items-center justify-center bg-[#232428] gap-1 shrink-0">
-        <span className="text-[10px] items-center gap-1.5 font-bold text-[#23a559] uppercase tracking-wider flex">
-          <span className="w-2 h-2 rounded-full bg-[#23a559] animate-pulse"></span>
-          {t('user_list.voice_connected')}
-        </span>
-        <span className="font-mono text-gray-200 text-lg tracking-wider font-semibold">
-          {formatTime(seconds)}
-        </span>
-      </div>
-    </div>
     </>
   );
 };
