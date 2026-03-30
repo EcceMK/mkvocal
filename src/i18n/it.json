@@ -74,5 +74,27 @@
     "send": "Invia",
     "attach": "Allega file",
     "download_image": "Scarica immagine"
+  },
+  "virtual_tabletop": {
+    "open": "Apri Tavolo Virtuale",
+    "close": "Chiudi Tavolo Virtuale",
+    "pencil": "Matita",
+    "eraser": "Gomma",
+    "line": "Linea",
+    "rectangle": "Rettangolo",
+    "circle": "Cerchio",
+    "arrow": "Freccia",
+    "clear_own": "Pulisci",
+    "upload_bg": "Sfondo",
+    "clear_bg": "Rimuovi Sfondo",
+    "download": "Scarica",
+    "send_to_chat": "Invia in Chat",
+    "sent_to_chat": "Inviato in chat!",
+    "reset_view": "Reset Vista",
+    "undo": "Annulla",
+    "redo": "Ripeti",
+    "grid": "Griglia",
+    "select": "Seleziona/Muovi",
+    "add_token": "Aggiungi Token"
   }
 }

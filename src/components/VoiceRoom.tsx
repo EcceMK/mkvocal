@@ -9,6 +9,7 @@ import { useI18n } from '../lib/i18n';
 import FloatingVideo from './FloatingVideo';
 import AudioStream from './AudioStream';
 import Whiteboard from './Whiteboard';
+import VirtualTabletop from './VirtualTabletop';
 
 interface VoiceRoomProps {
   username: string;
@@ -34,6 +35,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showVTT, setShowVTT] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -224,9 +226,22 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
             <span className="font-semibold text-white">{roomId}</span>
           </div>
 
-          {/* Messages or Whiteboard */}
+          {/* Messages or Whiteboard or VTT */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-[#1e1f22] scrollbar-track-transparent flex flex-col">
-            {showWhiteboard ? (
+            {showVTT ? (
+              <VirtualTabletop
+                userId={userId}
+                onSendToChat={(dataUrl: string) => {
+                  socket.emit('chat-message', {
+                    username,
+                    content: '',
+                    fileData: dataUrl,
+                    fileName: `vtt-${new Date().toISOString().replace(/[:.]/g, '-')}.png`,
+                    fileType: 'image/png'
+                  });
+                }}
+              />
+            ) : showWhiteboard ? (
               <Whiteboard 
                 userId={userId} 
                 onSendToChat={(dataUrl: string) => {
@@ -433,7 +448,14 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
               <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#111214]"></span>
             </span>
           </button>
-          <button onClick={() => setShowWhiteboard(!showWhiteboard)} className={`relative group p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${showWhiteboard ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`}>
+          <button onClick={() => { setShowVTT(!showVTT); if (!showVTT) setShowWhiteboard(false); }} className={`relative group p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${showVTT ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
+            <span className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all pointer-events-none bg-[#111214] text-[#dbdee1] text-[11px] font-bold px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50">
+              {showVTT ? (t('virtual_tabletop.close') || 'Chiudi VTT') : (t('virtual_tabletop.open') || 'Apri VTT')}
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#111214]"></span>
+            </span>
+          </button>
+          <button onClick={() => { setShowWhiteboard(!showWhiteboard); if (!showWhiteboard) setShowVTT(false); }} className={`relative group p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${showWhiteboard ? 'text-[#5865f2]' : 'text-gray-300 hover:text-white'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             <span className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all pointer-events-none bg-[#111214] text-[#dbdee1] text-[11px] font-bold px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50">
               {showWhiteboard ? t('voice_room.whiteboard_off') : t('voice_room.whiteboard_on')}

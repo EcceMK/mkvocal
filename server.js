@@ -35,6 +35,9 @@ app.prepare().then(() => {
   const socketToRoom = {} // socketId -> roomId
   const roomWhiteboards = {} // roomId -> { [socketId]: Path[] }
   const roomBackgrounds = {} // roomId -> string
+  const roomVTT = {} // roomId -> VTTPath[]
+  const roomVTTBg = {} // roomId -> string
+  const roomTokens = {} // roomId -> Token[]
 
   io.on('connection', (socket) => {
     socket.on('join-room', ({ roomId, username, userId, subRoom = 'common' }) => {
@@ -78,6 +81,17 @@ app.prepare().then(() => {
       }
       if (roomBackgrounds[roomId]) {
         socket.emit('whiteboard-bg', roomBackgrounds[roomId]);
+      }
+
+      // Send VTT history
+      if (roomVTT[roomId]) {
+        socket.emit('vtt-history', roomVTT[roomId]);
+      }
+      if (roomVTTBg[roomId]) {
+        socket.emit('vtt-bg', roomVTTBg[roomId]);
+      }
+      if (roomTokens[roomId]) {
+        socket.emit('vtt-tokens', roomTokens[roomId]);
       }
     })
 
@@ -313,6 +327,135 @@ app.prepare().then(() => {
       if (info) {
         delete roomBackgrounds[info.roomId];
         socket.to(info.roomId).emit('whiteboard-bg', null);
+      }
+    })
+
+    // ---- VTT events ----
+    socket.on('vtt-draw', (data) => {
+      const info = users[socket.id]
+      if (info) {
+        const roomId = info.roomId;
+        if (!roomVTT[roomId]) roomVTT[roomId] = [];
+        if (data.isNew) {
+          roomVTT[roomId].push({
+            points: [data.point],
+            color: data.color,
+            width: data.width,
+            tool: data.tool,
+            userId: socket.id,
+            id: data.id
+          });
+        } else {
+          for (let i = roomVTT[roomId].length - 1; i >= 0; i--) {
+            if (roomVTT[roomId][i].id === data.id) {
+              roomVTT[roomId][i].points.push(data.point);
+              break;
+            }
+          }
+        }
+        socket.to(roomId).emit('vtt-draw', { ...data, socketId: socket.id });
+      }
+    })
+
+    socket.on('vtt-shape', (data) => {
+      const info = users[socket.id]
+      if (info) {
+        const roomId = info.roomId;
+        if (!roomVTT[roomId]) roomVTT[roomId] = [];
+        roomVTT[roomId].push({
+          points: [data.start, data.end],
+          color: data.color,
+          width: data.width,
+          tool: data.tool,
+          userId: socket.id,
+          id: data.id
+        });
+        socket.to(roomId).emit('vtt-shape', { ...data, socketId: socket.id });
+      }
+    })
+
+    socket.on('vtt-clear', () => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomVTT[info.roomId]) {
+          roomVTT[info.roomId] = roomVTT[info.roomId].filter(p => p.userId !== socket.id);
+        }
+        socket.to(info.roomId).emit('vtt-clear', { socketId: socket.id });
+      }
+    })
+
+    socket.on('get-vtt-history', () => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomVTT[info.roomId]) socket.emit('vtt-history', roomVTT[info.roomId]);
+        if (roomVTTBg[info.roomId]) socket.emit('vtt-bg', roomVTTBg[info.roomId]);
+        if (roomTokens[info.roomId]) socket.emit('vtt-tokens', roomTokens[info.roomId]);
+      }
+    })
+
+    socket.on('vtt-bg', (image) => {
+      const info = users[socket.id]
+      if (info) {
+        roomVTTBg[info.roomId] = image;
+        socket.to(info.roomId).emit('vtt-bg', image);
+      }
+    })
+
+    socket.on('vtt-clear-bg', () => {
+      const info = users[socket.id]
+      if (info) {
+        delete roomVTTBg[info.roomId];
+        socket.to(info.roomId).emit('vtt-bg', null);
+      }
+    })
+
+    socket.on('vtt-undo', ({ pathId }) => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomVTT[info.roomId]) {
+          roomVTT[info.roomId] = roomVTT[info.roomId].filter(p => p.id !== pathId);
+        }
+        socket.to(info.roomId).emit('vtt-undo', { pathId });
+      }
+    })
+
+    socket.on('vtt-redo', (pathData) => {
+      const info = users[socket.id]
+      if (info) {
+        if (!roomVTT[info.roomId]) roomVTT[info.roomId] = [];
+        roomVTT[info.roomId].push({ ...pathData, userId: socket.id });
+        socket.to(info.roomId).emit('vtt-redo', { ...pathData, userId: socket.id });
+      }
+    })
+
+    // ---- VTT Token events ----
+    socket.on('vtt-token-add', (token) => {
+      const info = users[socket.id]
+      if (info) {
+        if (!roomTokens[info.roomId]) roomTokens[info.roomId] = [];
+        roomTokens[info.roomId].push(token);
+        socket.to(info.roomId).emit('vtt-token-add', token);
+      }
+    })
+
+    socket.on('vtt-token-move', ({ id, x, y }) => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomTokens[info.roomId]) {
+          const tk = roomTokens[info.roomId].find(t => t.id === id);
+          if (tk) { tk.x = x; tk.y = y; }
+        }
+        socket.to(info.roomId).emit('vtt-token-move', { id, x, y });
+      }
+    })
+
+    socket.on('vtt-token-remove', ({ id }) => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomTokens[info.roomId]) {
+          roomTokens[info.roomId] = roomTokens[info.roomId].filter(t => t.id !== id);
+        }
+        socket.to(info.roomId).emit('vtt-token-remove', { id });
       }
     })
 

@@ -61,5 +61,27 @@
     "send": "Send",
     "attach": "Attach file",
     "download_image": "Download image"
+  },
+  "virtual_tabletop": {
+    "open": "Open Virtual Tabletop",
+    "close": "Close Virtual Tabletop",
+    "pencil": "Pencil",
+    "eraser": "Eraser",
+    "line": "Line",
+    "rectangle": "Rectangle",
+    "circle": "Circle",
+    "arrow": "Arrow",
+    "clear_own": "Clear",
+    "upload_bg": "Background",
+    "clear_bg": "Remove Background",
+    "download": "Download",
+    "send_to_chat": "Send to Chat",
+    "sent_to_chat": "Sent to chat!",
+    "reset_view": "Reset View",
+    "undo": "Undo",
+    "redo": "Redo",
+    "grid": "Grid",
+    "select": "Select/Move",
+    "add_token": "Add Token"
   }
 }
