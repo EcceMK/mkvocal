@@ -33,6 +33,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const [diceType, setDiceType] = useState(20);
   const [pendingImport, setPendingImport] = useState<{ messages: any[], filename: string, count: number, start: string, end: string } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const chatFileInputRef = useRef<HTMLInputElement>(null);
@@ -206,11 +207,19 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           users={users}
           currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard }}
           speakingUsers={speakingUsers}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
         />
 
         <main className="flex-1 flex flex-col min-w-0 bg-[#313338] relative">
           {/* Header */}
           <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+              className="mr-3 p-1.5 rounded hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors md:hidden"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
             <span className="font-bold text-gray-400 mr-2">#</span>
             <span className="font-semibold text-white">{roomId}</span>
           </div>

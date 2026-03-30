@@ -14,9 +14,11 @@ interface UserListProps {
   users: User[];
   currentUser: { userId: string; username: string; subRoom: string; isSpeaking: boolean; isVideoOn?: boolean; isWhiteboardOn?: boolean } | null;
   speakingUsers: Set<string>;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }) => {
+const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, isOpen, onClose }) => {
   const { t } = useI18n();
   const [seconds, setSeconds] = useState(0);
 
@@ -74,10 +76,24 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
   };
 
   return (
-    <div className="sidebar w-64 flex-shrink-0 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31]">
-      <div className="p-4 border-b border-[#1e1f22]">
-        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
-      </div>
+    <>
+      {/* Overlay per chiudere la sidebar (solo mobile) */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden" 
+          onClick={onClose}
+        />
+      )}
+      <div className={`sidebar z-50 transition-all duration-300 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31] shrink-0 overflow-hidden
+        fixed inset-y-0 left-0 w-[60%] shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:relative md:translate-x-0 md:shadow-none md:w-64
+      `}>
+        <div className="flex items-center justify-between p-4 border-b border-[#1e1f22] shrink-0">
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest truncate">{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 md:hidden">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Stanza Comune */}
@@ -114,6 +130,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers }
         </span>
       </div>
     </div>
+    </>
   );
 };
 
