@@ -82,6 +82,8 @@
     "redo": "Redo",
     "grid": "Grid",
     "select": "Select/Move",
-    "add_token": "Add Token"
+    "add_token": "Add Token",
+    "rename_token": "Rename Token",
+    "resize_token": "Token Size (px)"
   }
 }

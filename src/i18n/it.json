@@ -95,6 +95,8 @@
     "redo": "Ripeti",
     "grid": "Griglia",
     "select": "Seleziona/Muovi",
-    "add_token": "Aggiungi Token"
+    "add_token": "Aggiungi Token",
+    "rename_token": "Rinomina Token",
+    "resize_token": "Dimensione Token (px)"
   }
 }

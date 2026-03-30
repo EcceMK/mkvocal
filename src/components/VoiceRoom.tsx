@@ -360,7 +360,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           </div>
 
           {/* Floating Videos Layer */}
-          <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 z-[100] overflow-hidden">
             <div className="pointer-events-auto contents">
               {isVideoOn && !hiddenVideos.has('local') && (
                 <FloatingVideo

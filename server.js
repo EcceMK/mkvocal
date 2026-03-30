@@ -449,6 +449,19 @@ app.prepare().then(() => {
       }
     })
 
+    socket.on('vtt-token-update', (token) => {
+      const info = users[socket.id]
+      if (info) {
+        if (roomTokens[info.roomId]) {
+          const idx = roomTokens[info.roomId].findIndex(t => t.id === token.id);
+          if (idx !== -1) {
+            roomTokens[info.roomId][idx] = token;
+          }
+        }
+        socket.to(info.roomId).emit('vtt-token-update', token);
+      }
+    })
+
     socket.on('vtt-token-remove', ({ id }) => {
       const info = users[socket.id]
       if (info) {
