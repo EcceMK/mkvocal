@@ -15,6 +15,7 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   const [subRoom, setSubRoom] = useState<'common' | 'private'>('common');
   const [speakingUsers, setSpeakingUsers] = useState<Set<string>>(new Set());
   const [isVideoOn, setIsVideoOn] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [usersWithVideo, setUsersWithVideo] = useState<Set<string>>(new Set());
   
   const peersRef = useRef<{ [socketId: string]: RTCPeerConnection }>({});
@@ -25,6 +26,7 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
   const subRoomRef = useRef<'common' | 'private'>('common');
   const analysersRef = useRef<{ [socketId: string]: AnalyserNode }>({});
   const audioContextRef = useRef<AudioContext | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     subRoomRef.current = subRoom;
@@ -280,6 +282,77 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
     };
   }, [roomId, userId, username]);
 
+  const stopScreenSharing = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      const screenTrack = screenStreamRef.current.getVideoTracks()[0];
+      if (localStreamRef.current && screenTrack) {
+        localStreamRef.current.removeTrack(screenTrack);
+      }
+      screenStreamRef.current = null;
+    }
+
+    Object.values(peersRef.current).forEach(pc => {
+      const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+      if (sender) {
+        pc.removeTrack(sender);
+      }
+    });
+
+    setIsScreenSharing(false);
+    setIsVideoOn(false);
+    socket.emit('toggle-video', { isVideoOn: false });
+  };
+
+  const toggleScreenSharing = async () => {
+    if (!localStreamRef.current) return;
+
+    if (!isScreenSharing) {
+      try {
+        // Se il video della webcam è acceso, spegnilo prima
+        if (isVideoOn) {
+          const videoTrack = localStreamRef.current.getVideoTracks()[0];
+          if (videoTrack) {
+            videoTrack.stop();
+            localStreamRef.current.removeTrack(videoTrack);
+            Object.values(peersRef.current).forEach(pc => {
+              const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+              if (sender) pc.removeTrack(sender);
+            });
+          }
+        }
+
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = screenStream;
+        const screenTrack = screenStream.getVideoTracks()[0];
+        
+        localStreamRef.current.addTrack(screenTrack);
+        
+        Object.values(peersRef.current).forEach(pc => {
+          const senders = pc.getSenders();
+          const videoSender = senders.find(s => s.track?.kind === 'video');
+          if (videoSender) {
+            videoSender.replaceTrack(screenTrack);
+          } else {
+            pc.addTrack(screenTrack, localStreamRef.current!);
+          }
+        });
+
+        screenTrack.onended = () => {
+          stopScreenSharing();
+        };
+        
+        setIsScreenSharing(true);
+        setIsVideoOn(true);
+        socket.emit('toggle-video', { isVideoOn: true });
+      } catch (err) {
+        console.error('Error starting screen share:', err);
+      }
+    } else {
+      stopScreenSharing();
+    }
+  };
+
   const switchSubRoom = (newSubRoom: 'common' | 'private') => {
     subRoomRef.current = newSubRoom;
     setSubRoom(newSubRoom);
@@ -292,6 +365,11 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
 
     if (!isVideoOn) {
       try {
+        // Se la condivisione schermo è attiva, fermala prima
+        if (isScreenSharing) {
+          stopScreenSharing();
+        }
+
         const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
         const videoTrack = videoStream.getVideoTracks()[0];
         localStreamRef.current.addTrack(videoTrack);
@@ -332,5 +410,5 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
     }
   };
 
-  return { localStream, remoteStreams, peers, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo };
+  return { localStream, remoteStreams, peers, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo, isScreenSharing, toggleScreenSharing };
 };

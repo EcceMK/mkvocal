@@ -21,6 +21,8 @@
     "exit_private": "Esci da Stanza Privata",
     "video_on": "Attiva Camera",
     "video_off": "Spegni Camera",
+    "screen_share_on": "Condividi Schermo",
+    "screen_share_off": "Interrompi Condivisione",
     "whiteboard_on": "Apri Lavagna",
     "whiteboard_off": "Chiudi Lavagna",
     "whiteboard": {

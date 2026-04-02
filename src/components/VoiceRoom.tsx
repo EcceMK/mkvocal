@@ -23,7 +23,7 @@ interface VoiceRoomProps {
 const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
   const { t } = useI18n();
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }[]>([]);
-  const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo } = useWebRTC(roomId, userId, username);
+  const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo, isScreenSharing, toggleScreenSharing } = useWebRTC(roomId, userId, username);
   const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState<{ id?: string, username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string, reactions?: { [key: string]: string[] } }[]>([]);
   const [inputText, setInputText] = useState('');
@@ -491,6 +491,13 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
             <span className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all pointer-events-none bg-[#111214] text-[#dbdee1] text-[11px] font-bold px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50">
               {isVideoOn ? t('voice_room.video_off') : t('voice_room.video_on')}
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#111214]"></span>
+            </span>
+          </button>
+          <button onClick={toggleScreenSharing} className={`relative group p-2 cursor-pointer rounded hover:bg-[#35373c] transition-colors ${isScreenSharing ? 'text-[#23a559]' : 'text-gray-300 hover:text-white'}`}>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-2.25 1.25m10.5 0L15 20l-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+            <span className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all pointer-events-none bg-[#111214] text-[#dbdee1] text-[11px] font-bold px-3 py-1.5 rounded shadow-lg whitespace-nowrap z-50">
+              {isScreenSharing ? t('voice_room.screen_share_off') : t('voice_room.screen_share_on')}
               <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#111214]"></span>
             </span>
           </button>

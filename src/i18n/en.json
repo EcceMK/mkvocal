@@ -19,6 +19,8 @@
     "exit_private": "Exit Private Room",
     "video_on": "Start Camera",
     "video_off": "Stop Camera",
+    "screen_share_on": "Share Screen",
+    "screen_share_off": "Stop Sharing",
     "whiteboard_on": "Open Whiteboard",
     "whiteboard_off": "Close Whiteboard",
     "whiteboard": {
