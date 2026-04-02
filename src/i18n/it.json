@@ -69,7 +69,9 @@
     "private_room": "Stanza Privata",
     "you": "Tu",
     "voice_connected": "Voce Connessa",
-    "no_users": "Nessun utente"
+    "no_users": "Nessun utente",
+    "mute_user": "Muta Utente",
+    "unmute_user": "Riattiva Utente"
   },
   "chat_box": {
     "placeholder": "Messaggio...",

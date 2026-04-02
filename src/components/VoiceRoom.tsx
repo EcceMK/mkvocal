@@ -24,6 +24,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
   const { t } = useI18n();
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo, isScreenSharing, toggleScreenSharing } = useWebRTC(roomId, userId, username);
+  const [remoteUserSettings, setRemoteUserSettings] = useState<Record<string, { volume: number, muted: boolean }>>({});
   const [isMuted, setIsMuted] = useState(false);
   const [messages, setMessages] = useState<{ id?: string, username: string, content?: string, text?: string, fileData?: string, fileName?: string, fileType?: string, reactions?: { [key: string]: string[] } }[]>([]);
   const [inputText, setInputText] = useState('');
@@ -138,6 +139,16 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
     onLeave();
     window.location.reload();
   };
+  
+  const handleUserSettingsChange = (socketId: string, settings: Partial<{ volume: number, muted: boolean }>) => {
+    setRemoteUserSettings(prev => ({
+      ...prev,
+      [socketId]: {
+        ...(prev[socketId] || { volume: 1, muted: false }),
+        ...settings
+      }
+    }));
+  };
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,6 +230,8 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
           users={users}
           currentUser={{ userId, username, subRoom, isSpeaking: speakingUsers.has('local'), isVideoOn, isWhiteboardOn: showWhiteboard, isVTTOn: showVTT }}
           speakingUsers={speakingUsers}
+          remoteUserSettings={remoteUserSettings}
+          onUserSettingsChange={handleUserSettingsChange}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
         />
@@ -393,7 +406,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
                   username={username}
                   isLocal={true}
                   isSpeaking={speakingUsers.has('local')}
-                  onClose={() => setHiddenVideos(prev => new Set([...prev, 'local']))}
+                  onClose={toggleVideo}
                   initialX={20}
                   initialY={typeof window !== 'undefined' ? window.innerHeight - 300 : 500}
                 />
@@ -580,7 +593,12 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
 
       <div className="hidden">
         {Object.entries(remoteStreams).map(([id, stream]) => (
-          <AudioStream key={id} stream={stream} />
+          <AudioStream 
+            key={id} 
+            stream={stream} 
+            volume={remoteUserSettings[id]?.volume ?? 1} 
+            muted={remoteUserSettings[id]?.muted ?? false} 
+          />
         ))}
       </div>
     </div>

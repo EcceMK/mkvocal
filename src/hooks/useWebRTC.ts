@@ -173,9 +173,15 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
             if (!pc) return;
 
             if (signal.type === 'offer' || signal.type === 'answer') {
-              // Strict guard against late/duplicate answers that arrive when we aren't expecting them
-              if (signal.type === 'answer' && pc.signalingState !== 'have-local-offer') {
-                return;
+              // --- Answer guard: must be first, before any async gap ---
+              // Answers are only valid when we are waiting for one (have-local-offer).
+              // If the connection closed, was restarted, or we received a duplicate answer
+              // the state will be 'stable' or 'closed' — drop it immediately.
+              if (signal.type === 'answer') {
+                if (pc.signalingState !== 'have-local-offer') {
+                  console.warn(`[WebRTC] Dropping stale answer from ${callerId} (state: ${pc.signalingState})`);
+                  return;
+                }
               }
 
               const targetUserId = peerUserIdsRef.current[callerId];
@@ -196,11 +202,26 @@ export const useWebRTC = (roomId: string, userId: string, username: string) => {
                 }
               }
 
-              // Only accept descriptions if they won't cause immediate state errors based on our checks
+              // Re-validate state immediately before setRemoteDescription to close the async gap.
+              // State can change between the checks above and the actual call.
+              if (signal.type === 'answer' && pc.signalingState !== 'have-local-offer') {
+                console.warn(`[WebRTC] Dropping answer from ${callerId} — state changed to '${pc.signalingState}' before setRemoteDescription`);
+                return;
+              }
+              if (signal.type === 'offer' && pc.signalingState !== 'stable' && pc.signalingState !== 'have-remote-offer') {
+                console.warn(`[WebRTC] Dropping offer from ${callerId} — unexpected state '${pc.signalingState}'`);
+                return;
+              }
+
               try {
                 await pc.setRemoteDescription(new RTCSessionDescription(signal));
-              } catch (err) {
-                console.error('Failed to setRemoteDescription:', err);
+              } catch (err: any) {
+                // InvalidStateError is a known harmless race — the connection is already stable
+                if (err?.name === 'InvalidStateError') {
+                  console.warn(`[WebRTC] Ignoring stale ${signal.type} (state: ${pc.signalingState})`);
+                } else {
+                  console.error('Failed to setRemoteDescription:', err);
+                }
                 return;
               }
 

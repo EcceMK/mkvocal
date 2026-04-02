@@ -56,7 +56,9 @@
     "private_room": "Private Room",
     "you": "You",
     "voice_connected": "Voice Connected",
-    "no_users": "No users"
+    "no_users": "No users",
+    "mute_user": "Mute User",
+    "unmute_user": "Unmute User"
   },
   "chat_box": {
     "placeholder": "Message...",
