@@ -6,7 +6,8 @@
     "room_id_label": "ID Stanza",
     "room_id_placeholder": "Inserisci ID stanza",
     "room_id_help": "È consentito solo l'inserimento di caratteri alfanumerici e trattini",
-    "join_button": "Entra"
+    "join_button": "Entra",
+    "room_not_found": "Stanza non trovata"
   },
   "voice_room": {
     "online": "Online",

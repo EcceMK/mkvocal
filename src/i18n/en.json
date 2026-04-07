@@ -5,7 +5,8 @@
     "username_placeholder": "Enter your username",
     "room_id_label": "Room ID",
     "room_id_placeholder": "Enter room ID",
-    "join_button": "Join"
+    "join_button": "Join",
+    "room_not_found": "Room not found"
   },
   "voice_room": {
     "online": "Online",

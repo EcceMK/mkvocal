@@ -17,10 +17,11 @@ interface VoiceRoomProps {
   username: string;
   roomId: string;
   userId: string;
+  roomName: string;
   onLeave: () => void;
 }
 
-const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave }) => {
+const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomName, onLeave }) => {
   const { t } = useI18n();
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo, isScreenSharing, toggleScreenSharing } = useWebRTC(roomId, userId, username);
@@ -246,7 +247,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, onLeave
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
             <span className="font-bold text-gray-400 mr-2">#</span>
-            <span className="font-semibold text-white">{roomId}</span>
+            <span className="font-semibold text-white">{roomName}</span>
           </div>
 
           {/* Messages or Whiteboard or VTT */}

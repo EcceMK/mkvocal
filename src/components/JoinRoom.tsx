@@ -4,18 +4,39 @@ import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
 
 interface JoinRoomProps {
-  onJoin: (username: string, roomId: string) => void;
+  onJoin: (username: string, roomId: string, roomName: string) => void;
 }
 
 const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
   const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [roomId, setRoomId] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (username.trim() && roomId.trim()) {
-      onJoin(username, roomId);
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/rooms');
+        const rooms = await response.json();
+        
+        const room = rooms.find((r: any) => r.codice.toLowerCase() === roomId.toLowerCase());
+        
+        if (room) {
+          onJoin(username, roomId.toLowerCase(), room.nominativo);
+        } else {
+          setError(t('join_room.room_not_found'));
+        }
+      } catch (err) {
+        console.error('Error validation room:', err);
+        setError('Connection error');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -56,10 +77,17 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
             </p>
 
           </div>
+          {error && (
+            <div className="p-3 rounded bg-red-500/10 border border-red-500/50 text-red-500 text-sm text-center animate-in fade-in slide-in-from-top-1">
+              {error}
+            </div>
+          )}
           <button
             type="submit"
-            className="w-full btn-primary text-lg py-3 mt-4 hover:shadow-lg transition-all"
+            disabled={isLoading}
+            className="w-full btn-primary text-lg py-3 mt-4 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
+            {isLoading && <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
             {t('join_room.join_button')}
           </button>
         </form>
