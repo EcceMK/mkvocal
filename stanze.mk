@@ -1,6 +1,6 @@
 [
   { "codice": "general", "nominativo": "Stanza Generale" },
-  { "codice": "sviluppo", "nominativo": "Sviluppo Software" },
+  { "codice": "roncaglia", "nominativo": "Gruppo Roncaglia" },
   { "codice": "test", "nominativo": "Stanza di Test" },
   { "codice": "mkvocal", "nominativo": "Laboratorio MKvocal" }
 ]
