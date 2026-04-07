@@ -49,7 +49,8 @@
       "overwrite_confirm": "Warning: this operation will delete all current messages in the room. Click OK to confirm."
     },
     "json_invalid": "Invalid JSON format for chat.",
-    "json_error": "Error reading JSON: file corrupted."
+    "json_error": "Error reading JSON: file corrupted.",
+    "user_joined_notification": "{username} joined the room"
   },
   "user_list": {
     "members": "Members",

@@ -62,7 +62,8 @@
       "importing_chat": "Importazione in corso..."
     },
     "json_invalid": "Formato JSON non valido per la chat.",
-    "json_error": "Errore lettura JSON: file corrotto."
+    "json_error": "Errore lettura JSON: file corrotto.",
+    "user_joined_notification": "{username} è entrato nella stanza"
   },
   "user_list": {
     "members": "Membri",

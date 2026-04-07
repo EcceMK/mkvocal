@@ -45,8 +45,24 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
   const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
     socket.on('all-users', (allUsers) => setUsers(allUsers));
     socket.on('user-joined', (user) => {
+      // Browser Notification
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification('MKvocal', {
+          body: t('voice_room.user_joined_notification').replace('{username}', user.username),
+          icon: '/favicon.ico'
+        });
+      }
+
       setUsers((prev) => {
         if (prev.some(u => u.socketId === user.socketId)) return prev;
         return [...prev, user];
