@@ -46,21 +46,40 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
+      console.log('Notification API available. Current permission:', Notification.permission);
       if (Notification.permission === 'default') {
-        Notification.requestPermission();
+        Notification.requestPermission().then(permission => {
+          console.log('Notification permission result:', permission);
+        });
       }
+    } else {
+      console.warn('Notification API not available in this browser context.');
     }
   }, []);
 
   useEffect(() => {
     socket.on('all-users', (allUsers) => setUsers(allUsers));
     socket.on('user-joined', (user) => {
+      console.log('Event: user-joined received for:', user.username);
+      
       // Browser Notification
       if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification('MKvocal', {
-          body: t('voice_room.user_joined_notification').replace('{username}', user.username),
-          icon: '/favicon.ico'
-        });
+        try {
+          console.log('Attempting to show desktop notification...');
+          const notification = new Notification('MKvocal', {
+            body: t('voice_room.user_joined_notification').replace('{username}', user.username),
+            requireInteraction: false,
+          });
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+          console.log('Notification object created successfully.');
+        } catch (err) {
+          console.error('Error creating Notification:', err);
+        }
+      } else {
+        console.warn('Notification not shown. Permission:', typeof Notification !== 'undefined' ? Notification.permission : 'N/A');
       }
 
       setUsers((prev) => {
