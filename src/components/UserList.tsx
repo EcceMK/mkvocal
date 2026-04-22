@@ -22,7 +22,7 @@ interface UserListProps {
   speakingUsers: Set<string>;
   remoteUserSettings: { [socketId: string]: RemoteUserSettings };
   onUserSettingsChange: (socketId: string, settings: Partial<RemoteUserSettings>) => void;
-  onSwitchSubRoom: (subRoom: string) => void;
+  onSwitchSubRoom: (subRoom: 'common' | 'private') => void;
   isOpen: boolean;
   onClose: () => void;
   theme?: any;
