@@ -76,7 +76,7 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
 
   return (
     <div 
-      className={`fixed z-50 rounded-lg overflow-hidden bg-[#1e1f22] border-2 transition-[border-color,box-shadow,transform] duration-300 shadow-2xl flex flex-col ${isSpeaking ? 'border-[#23a559] scale-[1.02] shadow-[0_0_20px_rgba(35,165,89,0.5)]' : 'border-[#1e1f22]'} ${isDragging ? 'cursor-grabbing select-none' : ''}`}
+      className={`fixed z-50 rounded-lg overflow-hidden bg-[#1e1f22] border-2 transition-[border-color] duration-300 shadow-2xl flex flex-col ${isSpeaking ? 'border-[#23a559]' : 'border-[#1e1f22]'} ${isDragging ? 'cursor-grabbing select-none' : ''}`}
       style={{ 
         left: `${pos.x}px`, 
         top: `${pos.y}px`,
@@ -92,7 +92,7 @@ const FloatingVideo: React.FC<FloatingVideoProps> = ({
         className="h-8 bg-[#2b2d31] flex items-center justify-between px-2 cursor-grab active:cursor-grabbing shrink-0"
       >
         <div className="flex items-center gap-2 overflow-hidden">
-          <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-[#23a559] animate-pulse' : 'bg-gray-500'}`} />
+          <div className={`w-2 h-2 rounded-full ${isSpeaking ? 'bg-[#23a559]' : 'bg-gray-500'}`} />
           <span className="text-[11px] font-bold text-gray-300 truncate tracking-wide">{username} {isLocal && '(Tu)'}</span>
         </div>
         <button 
