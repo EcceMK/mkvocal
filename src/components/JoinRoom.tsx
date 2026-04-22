@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useI18n } from '../lib/i18n';
 
 interface JoinRoomProps {
-  onJoin: (username: string, roomId: string, roomName: string) => void;
+  onJoin: (username: string, roomId: string, roomName: string, theme?: any) => void;
 }
 
 const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
@@ -27,7 +27,7 @@ const JoinRoom: React.FC<JoinRoomProps> = ({ onJoin }) => {
         const room = rooms.find((r: any) => r.codice.toLowerCase() === roomId.toLowerCase());
         
         if (room) {
-          onJoin(username, roomId.toLowerCase(), room.nominativo);
+          onJoin(username, roomId.toLowerCase(), room.nominativo, room.theme);
         } else {
           setError(t('join_room.room_not_found'));
         }

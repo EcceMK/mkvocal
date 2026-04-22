@@ -18,10 +18,11 @@ interface VoiceRoomProps {
   roomId: string;
   userId: string;
   roomName: string;
+  theme?: any;
   onLeave: () => void;
 }
 
-const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomName, onLeave }) => {
+const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomName, theme, onLeave }) => {
   const { t } = useI18n();
   const [users, setUsers] = useState<{ userId: string; username: string; socketId: string; subRoom?: string; isVideoOn?: boolean; isWhiteboardOn?: boolean; isVTTOn?: boolean }[]>([]);
   const { localStream, remoteStreams, subRoom, switchSubRoom, speakingUsers, isVideoOn, toggleVideo, usersWithVideo, isScreenSharing, toggleScreenSharing } = useWebRTC(roomId, userId, username);
@@ -260,7 +261,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
   const subRoomUsers = users.filter(u => (!u.subRoom || u.subRoom === 'common') === (subRoom === 'common'));
 
   return (
-    <div className="flex flex-col h-full bg-[#313338] text-white overflow-hidden relative mk-h-100">
+    <div className="flex flex-col h-full overflow-hidden relative mk-h-100" style={{ backgroundColor: theme?.chatBg || '#313338', color: theme?.chatText || 'white' }}>
       <div className="flex-1 flex overflow-hidden min-h-0">
         <UserList
           users={users}
@@ -270,19 +271,20 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
           onUserSettingsChange={handleUserSettingsChange}
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
+          theme={theme}
         />
 
-        <main className="flex-1 flex flex-col min-w-0 bg-[#313338] relative">
+        <main className="flex-1 flex flex-col min-w-0 relative" style={{ backgroundColor: theme?.chatBg || '#313338' }}>
           {/* Header */}
-          <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0">
+          <div className="h-12 flex items-center px-4 shadow-sm border-b border-[#1e1f22] shrink-0" style={{ backgroundColor: theme?.headerBg || '#313338', color: theme?.headerText || 'white' }}>
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="mr-3 p-1.5 rounded hover:bg-[#35373c] text-gray-400 hover:text-white transition-colors md:hidden"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <span className="font-bold text-gray-400 mr-2">#</span>
-            <span className="font-semibold text-white">{roomName}</span>
+            <span className="font-bold mr-2" style={{ color: theme?.headerText ? `${theme.headerText}80` : '#9ca3af' }}>#</span>
+            <span className="font-semibold">{roomName}</span>
           </div>
 
           {/* Messages or Whiteboard or VTT */}
@@ -463,7 +465,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
 
           {/* Input Bar */}
           {!showWhiteboard && !showVTT && (
-            <div className="p-4 bg-[#313338] shrink-0">
+            <div className="p-4 shrink-0" style={{ backgroundColor: theme?.chatBg || '#313338' }}>
               <form onSubmit={sendMessage} className="relative group flex items-center gap-2">
                 <button
                   type="button"
@@ -498,7 +500,7 @@ const VoiceRoom: React.FC<VoiceRoomProps> = ({ username, roomId, userId, roomNam
       </div>
 
       {/* Control Bar */}
-      <div className="h-16 bg-[#232428] flex items-center justify-between px-4 mt-auto border-t border-[#1e1f22] shrink-0">
+      <div className="h-16 flex items-center justify-between px-4 mt-auto border-t border-[#1e1f22] shrink-0" style={{ backgroundColor: theme?.toolbarBg || '#232428', color: theme?.toolbarText || 'white' }}>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-[#5865f2] flex items-center justify-center text-xs font-bold text-white uppercase">{username[0]}</div>
           <div className="flex flex-col">

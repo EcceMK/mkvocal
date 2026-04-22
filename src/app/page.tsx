@@ -6,11 +6,11 @@ import VoiceRoom from '../components/VoiceRoom';
 
 export default function Home() {
   const [joined, setJoined] = useState(false);
-  const [roomData, setRoomData] = useState<{ username: string; roomId: string; userId: string; roomName: string } | null>(null);
+  const [roomData, setRoomData] = useState<{ username: string; roomId: string; userId: string; roomName: string, theme?: any } | null>(null);
 
-  const handleJoin = (username: string, roomId: string, roomName: string) => {
+  const handleJoin = (username: string, roomId: string, roomName: string, theme?: any) => {
     const userId = Math.random().toString(36).substring(2, 9);
-    setRoomData({ username, roomId, userId, roomName });
+    setRoomData({ username, roomId, userId, roomName, theme });
     setJoined(true);
   };
 
@@ -30,6 +30,7 @@ export default function Home() {
             roomId={roomData.roomId}
             userId={roomData.userId}
             roomName={roomData.roomName}
+            theme={roomData.theme}
             onLeave={handleLeave}
           />
         )

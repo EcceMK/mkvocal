@@ -24,9 +24,10 @@ interface UserListProps {
   onUserSettingsChange: (socketId: string, settings: Partial<RemoteUserSettings>) => void;
   isOpen: boolean;
   onClose: () => void;
+  theme?: any;
 }
 
-const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, remoteUserSettings, onUserSettingsChange, isOpen, onClose }) => {
+const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, remoteUserSettings, onUserSettingsChange, isOpen, onClose, theme }) => {
   const { t } = useI18n();
   const [seconds, setSeconds] = useState(0);
 
@@ -125,12 +126,12 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
           onClick={onClose}
         />
       )}
-      <div className={`sidebar z-50 transition-all duration-300 flex flex-col h-full border-r border-[#1e1f22] bg-[#2b2d31] shrink-0 overflow-hidden
+      <div className={`sidebar z-50 transition-all duration-300 flex flex-col h-full border-r border-[#1e1f22] shrink-0 overflow-hidden
         fixed inset-y-0 left-0 w-[60%] shadow-2xl ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         md:relative md:translate-x-0 md:shadow-none md:w-64
-      `}>
+      `} style={{ backgroundColor: theme?.sidebarBg || '#2b2d31', color: theme?.sidebarText || '#dbdee1' }}>
         <div className="flex items-center justify-between p-4 border-b border-[#1e1f22] shrink-0">
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest truncate">{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
+          <h2 className="text-sm font-bold uppercase tracking-widest truncate" style={{ color: theme?.sidebarText ? `${theme.sidebarText}b3` : '#9ca3af' }}>{t('user_list.members')} — {users.length + (currentUser ? 1 : 0)}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white p-1 md:hidden">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
@@ -139,7 +140,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {/* Stanza Comune */}
           <div className="space-y-2">
-            <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme?.sidebarText ? `${theme.sidebarText}b3` : '#9ca3af' }}>
               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
               {t('user_list.common_room')}
             </div>
@@ -150,7 +151,7 @@ const UserList: React.FC<UserListProps> = ({ users, currentUser, speakingUsers, 
 
           {/* Stanza Privata */}
           <div className="space-y-2">
-            <div className="flex items-center text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider mb-2" style={{ color: theme?.sidebarText ? `${theme.sidebarText}b3` : '#9ca3af' }}>
               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               {t('user_list.private_room')}
             </div>
